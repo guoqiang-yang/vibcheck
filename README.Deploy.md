@@ -13,8 +13,14 @@ apt install -y git
 apt install -y python3 python3-venv python3-pip
 
 # Node.js 18（通过 NodeSource）
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+#curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+#apt install -y nodejs
+
+#Vite 6 要求 20.19+ 或 22.12+。升级到 Node.js 22：
+# 重新安装 NodeSource 源（22.x）
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
+
 
 # Nginx
 apt install -y nginx

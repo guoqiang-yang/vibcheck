@@ -115,6 +115,8 @@ export default function Calendar() {
     }
 
     const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const availH = (scrollRef.current?.clientHeight ?? 0) - 18 // subtract time header
+    const rowActualH = Math.max(ROW_ACTUAL_H, Math.floor(availH / daysInMonth))
     let html = ''
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -157,7 +159,7 @@ export default function Calendar() {
         const [eh, em] = (ev.end_time ?? `${HR_END}:00`).split(':').map(Number)
         const x0 = toX(tlWidth, sh, sm)
         const w = Math.max(toX(tlWidth, eh, em) - x0 - 1, 3)
-        actualHtml += `<div style="position:absolute;top:2px;height:${ROW_ACTUAL_H - 4}px;left:${x0}px;width:${w}px;border-radius:4px;background:rgba(${rgb},${engAlpha(ev.engagement)});border:1px solid ${color}"></div>`
+        actualHtml += `<div style="position:absolute;top:2px;height:${rowActualH - 4}px;left:${x0}px;width:${w}px;border-radius:4px;background:rgba(${rgb},${engAlpha(ev.engagement)});border:1px solid ${color}"></div>`
       })
 
       // Planned row (only if non-empty)
@@ -184,7 +186,7 @@ export default function Calendar() {
             ${dot}
           </div>
           <div style="flex:1;display:flex;flex-direction:column">
-            <div style="position:relative;height:${ROW_ACTUAL_H}px">${actualHtml}</div>
+            <div style="position:relative;height:${rowActualH}px">${actualHtml}</div>
             ${plannedHtml}
           </div>
         </div>`
