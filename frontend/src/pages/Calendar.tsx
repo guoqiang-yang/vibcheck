@@ -116,7 +116,7 @@ export default function Calendar() {
 
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     const availH = (scrollRef.current?.clientHeight ?? 0) - 18 // subtract time header
-    const rowActualH = Math.max(ROW_ACTUAL_H, Math.floor(availH / daysInMonth))
+    const rowActualH = Math.max(ROW_ACTUAL_H, Math.floor((availH - daysInMonth) / daysInMonth))
     let html = ''
 
     for (let d = 1; d <= daysInMonth; d++) {

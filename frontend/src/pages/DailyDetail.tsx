@@ -339,6 +339,7 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
   onDeleted?: () => void
 }) {
   const isEdit = event != null
+  const [keyboardH, setKeyboardH] = useState(0)
   const [type, setType] = useState<'actual' | 'planned' | 'inspiration'>(event?.type ?? 'actual')
   const [title, setTitle] = useState(event?.title ?? '')
   const [categoryId, setCategoryId] = useState<number | undefined>(event?.category_id ?? categories[0]?.id)
@@ -401,6 +402,15 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
     }
   }
 
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const handler = () => setKeyboardH(Math.max(0, window.innerHeight - vv.height - vv.offsetTop))
+    vv.addEventListener('resize', handler)
+    vv.addEventListener('scroll', handler)
+    return () => { vv.removeEventListener('resize', handler); vv.removeEventListener('scroll', handler) }
+  }, [])
+
   return (
     <>
       {/* Backdrop */}
@@ -411,7 +421,7 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
 
       {/* Sheet */}
       <div style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        position: 'fixed', bottom: keyboardH, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 430,
         background: 'white', borderRadius: '20px 20px 0 0',
         boxShadow: '0 -4px 30px rgba(0,0,0,0.14)',
@@ -610,7 +620,7 @@ export default function DailyDetail() {
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', maxWidth: 430, margin: '0 auto', background: '#FDF6F8', boxShadow: '0 0 40px rgba(0,0,0,0.10)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', maxWidth: 430, margin: '0 auto', background: '#FDF6F8', boxShadow: '0 0 40px rgba(0,0,0,0.10)', overflowX: 'hidden' }}>
 
       {/* ── Header ── */}
       <header style={{ background: 'linear-gradient(130deg, #C86878 0%, #C88860 100%)', color: 'white', flexShrink: 0 }}>
