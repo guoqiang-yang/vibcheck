@@ -345,7 +345,6 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
   const [startTime, setStartTime] = useState(() => event?.start_time.slice(0, 5) ?? nowHHMM())
   const [endTime, setEndTime] = useState(event?.end_time?.slice(0, 5) ?? '')
   const [engagement, setEngagement] = useState<Engagement>(event?.engagement ?? 'mid')
-  const [note, setNote] = useState(event?.note ?? '')
   const [content, setContent] = useState(event?.content ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
