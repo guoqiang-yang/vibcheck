@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>任务日志</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #9B5468;      /* warm deep rose */
+      --primary-dk: #7E3F52;
+      --accent: #E07858;       /* warm terracotta */
+      --text: #3D2030;
+      --muted: #A08898;
+      --row-border: #F5EEF0;
+      --planned-bg: rgba(139,92,246,0.03);
+    }
+
+    html, body { height: 100%; height: 100dvh; }
+
+    body {
+      font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+      background: #F8FAFC;
+      color: var(--text);
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── App shell ─────────────────────────────────────────── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      max-width: 430px;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 0 40px rgba(0,0,0,0.10);
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      background: linear-gradient(130deg, #C86878 0%, #C88860 100%);
+      color: white;
+      padding: 10px 14px 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .header-nav { display: flex; align-items: center; gap: 7px; }
+
+    .icon-btn {
+      width: 30px; height: 30px;
+      border: none;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: manipulation;
+      transition: background 0.1s;
+      flex-shrink: 0;
+    }
+    .icon-btn:active { background: rgba(255,255,255,0.28); }
+
+    .month-title {
+      font-size: 16px;
+      font-weight: 700;
+      min-width: 96px;
+      text-align: center;
+    }
+
+    .today-chip {
+      padding: 0 11px; height: 30px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: white; border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      touch-action: manipulation;
+      transition: background 0.1s;
+    }
+    .today-chip:active { background: rgba(255,255,255,0.28); }
+
+    /* ── Legend bar (4 categories only) ───────────────────── */
+    .legend {
+      background: white;
+      border-bottom: 1px solid var(--row-border);
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .legend::-webkit-scrollbar { display: none; }
+
+    .leg-item {
+      display: flex; align-items: center; gap: 3px;
+      white-space: nowrap; font-size: 9px;
+      color: var(--muted); flex-shrink: 0;
+    }
+    .leg-dot {
+      width: 7px; height: 7px;
+      border-radius: 2px; flex-shrink: 0;
+    }
+    .leg-sep {
+      width: 1px; height: 12px;
+      background: var(--row-border); flex-shrink: 0;
+    }
+    .leg-planned {
+      width: 20px; height: 8px;
+      border-radius: 2px;
+      border: 1.5px dashed var(--muted);
+      flex-shrink: 0;
+    }
+
+    /* ── Scroll area (NO horizontal scroll) ────────────────── */
+    .scroll-wrap {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+    .scroll-wrap::-webkit-scrollbar { width: 2px; }
+    .scroll-wrap::-webkit-scrollbar-thumb {
+      background: rgba(13,148,136,0.25);
+      border-radius: 1px;
+    }
+
+    /* ── Time header (sticky top) ──────────────────────────── */
+    .time-header {
+      position: sticky; top: 0; z-index: 30;
+      display: flex; height: 18px;
+      background: white;
+      border-bottom: 1px solid rgba(13,148,136,0.20);
+    }
+
+    .th-date-spacer {
+      flex-shrink: 0;
+      background: var(--primary);
+    }
+
+    .th-tl {
+      flex: 1; position: relative;
+      background: white;
+    }
+    .th-label {
+      position: absolute; bottom: 2px;
+      font-size: 7px; font-weight: 600;
+      color: #94A3B8; white-space: nowrap;
+      pointer-events: none; user-select: none;
+      padding-left: 2px;
+    }
+    .th-tick {
+      position: absolute; bottom: 0;
+      width: 1px;
+    }
+
+    /* ── Day group ─────────────────────────────────────────── */
+    .day-group {
+      display: flex; flex-direction: row;
+      border-bottom: 1px solid var(--row-border);
+    }
+    .day-group.is-today { background: #F0FFF8; }
+    .day-group.is-weekend { background: #FFFCF5; }
+
+    /* ── Date cell (sticky left, spans both rows) ───────────── */
+    .date-cell {
+      flex-shrink: 0;
+      position: sticky; left: 0; z-index: 15;
+      background: white;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border-right: 1.5px solid var(--primary);
+      gap: 1px;
+    }
+    .is-today .date-cell  { background: var(--primary); }
+    .is-weekend .date-cell { background: #FFF8ED; }
+
+    .date-num {
+      font-size: 10px; font-weight: 700; line-height: 1;
+      color: var(--text);
+    }
+    .is-today .date-num { color: white; }
+
+    /* Today indicator dot */
+    .today-dot {
+      width: 3px; height: 3px;
+      background: var(--accent);
+      border-radius: 50%;
+      margin-top: 1px;
+    }
+    .is-today .today-dot { background: rgba(255,255,255,0.8); }
+
+    /* Weekend dot */
+    .weekend-dot {
+      width: 3px; height: 3px;
+      background: var(--accent);
+      border-radius: 50%;
+      opacity: 0.5;
+      margin-top: 1px;
+    }
+
+    /* ── Timeline columns ──────────────────────────────────── */
+    .day-timelines {
+      flex: 1;
+      display: flex; flex-direction: column;
+    }
+
+    /* Actual events row */
+    .tl-actual {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* Planned/scheduled row */
+    .tl-planned {
+      position: relative;
+      flex-shrink: 0;
+      background: var(--planned-bg);
+      border-top: 1px dashed rgba(139,92,246,0.18);
+    }
+
+    /* Grid lines inside timeline rows */
+    .g-line {
+      position: absolute; top: 0; bottom: 0; width: 1px; pointer-events: none;
+    }
+
+    /* ── Task block base ────────────────────────────────────── */
+    .task {
+      position: absolute;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .task:active { transform: scale(0.93); }
+
+    /* Actual (solid border + tinted bg) */
+    .task.actual {
+      border-width: 1px; border-style: solid;
+    }
+
+    /* Planned / scheduled (dashed border, transparent bg) */
+    .task.planned {
+      border-width: 1.5px; border-style: dashed;
+      background: transparent !important;
+    }
+
+    /* Expired planned (past date but still dashed) */
+    .task.planned.expired {
+      opacity: 0.5;
+    }
+
+    /* ── Now indicator ─────────────────────────────────────── */
+    .now-line {
+      position: absolute; top: 0; bottom: 0;
+      width: 2px; background: #EF4444; z-index: 5;
+    }
+    .now-dot {
+      position: absolute; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px; height: 6px;
+      background: #EF4444; border-radius: 50%;
+      border: 1.5px solid white;
+    }
+
+    /* ── FAB ───────────────────────────────────────────────── */
+    .fab {
+      position: fixed; bottom: 24px; right: 20px;
+      width: 48px; height: 48px;
+      background: var(--accent); color: white;
+      border: none; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(249,115,22,0.38);
+      cursor: pointer; z-index: 60;
+      touch-action: manipulation;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .fab:active { transform: scale(0.90); box-shadow: 0 2px 8px rgba(249,115,22,0.28); }
+
+    /* ── Modal sheet ───────────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.50);
+      z-index: 80;
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.20s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+
+    .sheet {
+      width: 100%; max-width: 430px;
+      background: white;
+      border-radius: 20px 20px 0 0;
+      padding: 0 18px 32px;
+      transform: translateY(100%);
+      transition: transform 0.26s cubic-bezier(0.32,0.72,0,1);
+      max-height: 90dvh; overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sheet::-webkit-scrollbar { display: none; }
+    .overlay.open .sheet { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 32px; height: 4px;
+      background: #E2E8F0; border-radius: 2px;
+      margin: 12px auto 16px;
+    }
+    .sheet-title {
+      font-size: 16px; font-weight: 700;
+      color: var(--text); margin-bottom: 16px;
+    }
+
+    .field { margin-bottom: 12px; }
+    .field-label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--muted); margin-bottom: 4px;
+    }
+    .field-input {
+      width: 100%; padding: 9px 11px;
+      border: 1.5px solid #E2E8F0; border-radius: 9px;
+      font-size: 14px; color: var(--text);
+      background: #F8FAFC; outline: none;
+      font-family: inherit; transition: border-color 0.13s;
+      -webkit-appearance: none;
+    }
+    .field-input:focus { border-color: var(--primary); background: white; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .cat-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; }
+    .cat-btn {
+      padding: 7px 3px; border: 1.5px solid transparent;
+      border-radius: 7px; font-size: 10px; font-weight: 600;
+      cursor: pointer; text-align: center;
+      touch-action: manipulation; transition: all 0.1s;
+      font-family: inherit; line-height: 1.3;
+    }
+
+    .confirm-btn {
+      width: 100%; padding: 13px;
+      background: var(--primary); color: white;
+      border: none; border-radius: 11px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; margin-top: 6px;
+      font-family: inherit; touch-action: manipulation;
+      transition: background 0.12s;
+    }
+    .confirm-btn:active { background: var(--primary-dk); }
+
+    /* ── Toast ─────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 88px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(15,23,42,0.88); color: white;
+      padding: 9px 16px; border-radius: 9px;
+      font-size: 12px; font-weight: 500;
+      z-index: 200; opacity: 0;
+      transition: opacity 0.18s, transform 0.18s;
+      pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-nav">
+      <button class="icon-btn" id="prevBtn" aria-label="上月">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="month-title" id="monthTitle"></span>
+      <button class="icon-btn" id="nextBtn" aria-label="下月">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+    <button class="today-chip" id="todayBtn">今天</button>
+  </header>
+
+  <!-- Legend: 4 key categories only -->
+  <div class="legend" id="legendBar"></div>
+
+  <!-- Scroll area -->
+  <div class="scroll-wrap" id="scrollWrap">
+
+    <!-- Time header -->
+    <div class="time-header" id="timeHeader">
+      <div class="th-date-spacer" id="thDateSpacer"></div>
+      <div class="th-tl" id="thTl"></div>
+    </div>
+
+    <!-- Day rows -->
+    <div id="dayRows"></div>
+
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" aria-label="添加日程">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">添加日程</div>
+
+    <div class="field">
+      <label class="field-label" for="iName">事项名称</label>
+      <input class="field-input" type="text" id="iName" placeholder="输入名称..." maxlength="18">
+    </div>
+    <div class="field">
+      <label class="field-label" for="iDate">日期</label>
+      <input class="field-input" type="date" id="iDate">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label" for="iStart">开始</label>
+        <input class="field-input" type="time" id="iStart" value="09:00">
+      </div>
+      <div class="field">
+        <label class="field-label" for="iEnd">结束</label>
+        <input class="field-input" type="time" id="iEnd" value="10:00">
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">类别</label>
+      <div class="cat-grid" id="catGrid"></div>
+    </div>
+    <button class="confirm-btn" id="confirmBtn">确认添加</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const HR_START  = 4;
+const HR_END    = 24;
+const TOTAL_HRS = HR_END - HR_START;       // 20 hours
+const DATE_COL_W    = 30;                  // px, date column width
+const ROW_ACTUAL_H  = 14;                  // px, actual events row
+const ROW_PLANNED_H = 10;                  // px, planned events row
+
+// Demo fixed date/time
+const TODAY   = new Date(2026, 4, 26);     // May 26 2026
+const NOW_H   = 14; const NOW_M = 0;       // Demo "now" = 14:00
+
+const WD_LABELS   = ['日','一','二','三','四','五','六'];
+const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+// ── Categories ────────────────────────────────────────────────────────────────
+const CATS = {
+  work:     { color: '#4F86E8', rgb: '79,134,232',   label: '工作' },
+  exercise: { color: '#2DBD8A', rgb: '45,189,138',   label: '运动' },
+  learning: { color: '#F0883A', rgb: '240,136,58',   label: '学习' },
+  meeting:  { color: '#9B72E8', rgb: '155,114,232',  label: '会议' },
+  personal: { color: '#E87898', rgb: '232,120,152',  label: '个人' },
+};
+
+// Categories shown in legend
+const LEGEND_CATS = ['work', 'exercise', 'learning', 'meeting'];
+
+// 专注度 3 等级 → fill alpha (border 始终实色)
+// high = 实色  mid = 半透明  low = 淡色
+const FOCUS_ALPHA = {
+  high: 0.88,
+  mid:  0.46,
+  low:  0.16,
+};
+
+// ── Dimension helpers ─────────────────────────────────────────────────────────
+let TL_W = 0;
+let PX_PER_HR = 0;
+
+function initDimensions() {
+  const sw = document.getElementById('scrollWrap');
+  TL_W = sw.clientWidth - DATE_COL_W;
+  PX_PER_HR = TL_W / TOTAL_HRS;
+}
+
+function timeToX(h, m) {
+  return ((h - HR_START) + m / 60) * PX_PER_HR;
+}
+
+// ── Schedule templates (2-4 key tasks per day) ────────────────────────────────
+const WD_SCHED = [
+  { cat:'exercise', s:[7,0],   e:[8,0],   label:'晨练'     },
+  { cat:'work',     s:[9,0],   e:[12,30], label:'深度工作' },
+  { cat:'meeting',  s:[14,0],  e:[15,30], label:'会议'     },
+  { cat:'learning', s:[19,30], e:[21,0],  label:'学习'     },
+];
+
+const WE_SCHED = [
+  { cat:'exercise', s:[9,0],   e:[10,30], label:'运动'     },
+  { cat:'learning', s:[14,0],  e:[16,30], label:'阅读'     },
+  { cat:'personal', s:[19,0],  e:[21,0],  label:'个人'     },
+];
+
+// Pre-seeded planned events (future + some expired, for demo)
+const PLANNED_SEEDS = [
+  // Future
+  { key:'2026-05-27', cat:'meeting',  s:[10,0],  e:[11,30], label:'项目评审' },
+  { key:'2026-05-27', cat:'learning', s:[19,30], e:[21,0],  label:'读技术书' },
+  { key:'2026-05-28', cat:'exercise', s:[8,0],   e:[9,30],  label:'游泳'     },
+  { key:'2026-05-28', cat:'work',     s:[14,0],  e:[17,0],  label:'季度报告' },
+  { key:'2026-05-29', cat:'meeting',  s:[9,0],   e:[10,0],  label:'月度复盘' },
+  { key:'2026-05-30', cat:'work',     s:[10,0],  e:[13,0],  label:'需求评审' },
+  { key:'2026-05-30', cat:'exercise', s:[18,0],  e:[19,30], label:'骑行'     },
+  { key:'2026-05-31', cat:'meeting',  s:[15,0],  e:[17,0],  label:'月末总结' },
+  { key:'2026-06-01', cat:'learning', s:[10,0],  e:[12,0],  label:'课程学习' },
+  // Expired planned (past, but still dashed in planned row)
+  { key:'2026-05-24', cat:'work',     s:[14,0],  e:[15,30], label:'方案评审' },
+  { key:'2026-05-25', cat:'learning', s:[16,0],  e:[17,0],  label:'周报分享' },
+  { key:'2026-05-26', cat:'meeting',  s:[16,0],  e:[17,30], label:'客户演示' },
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let curYear  = TODAY.getFullYear();
+let curMonth = TODAY.getMonth();
+let selCat   = 'work';
+// tasksDB[key] = { actual: [...], planned: [...] }
+let tasksDB  = {};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function dateKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function isSameDay(a, b) {
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+function isPastDate(date) {
+  const today = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+  return date < today;
+}
+
+// 3 focus levels: high / mid / low
+function pickFocus() {
+  const r = Math.random();
+  return r < 0.40 ? 'high' : r < 0.72 ? 'mid' : 'low';
+}
+
+// ── Generate month data ───────────────────────────────────────────────────────
+function genMonthTasks(year, month) {
+  const db = {};
+  const days = new Date(year, month + 1, 0).getDate();
+  const todayDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+
+  for (let d = 1; d <= days; d++) {
+    const date = new Date(year, month, d);
+    const isWE  = date.getDay() === 0 || date.getDay() === 6;
+    const isToday = isSameDay(date, TODAY);
+    const isPastDay = date < todayDate;
+    const key  = dateKey(year, month, d);
+    const sched = isWE ? WE_SCHED : WD_SCHED;
+    const nowDec = NOW_H + NOW_M / 60;
+
+    db[key] = { actual: [], planned: [] };
+
+    sched.forEach(t => {
+      const endDec = t.e[0] + t.e[1] / 60;
+      if (isPastDay) {
+        db[key].actual.push({ ...t, focus: pickFocus() });
+      } else if (isToday) {
+        if (endDec <= nowDec) {
+          db[key].actual.push({ ...t, focus: pickFocus() });
+        }
+      }
+    });
+  }
+
+  // Inject pre-seeded planned events
+  PLANNED_SEEDS.forEach(seed => {
+    if (!db[seed.key]) db[seed.key] = { actual: [], planned: [] };
+    const [sy, sm, sd] = seed.key.split('-').map(Number);
+    const seedDate = new Date(sy, sm - 1, sd);
+    const isExpired = seedDate <= new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+    db[seed.key].planned.push({
+      cat: seed.cat, label: seed.label,
+      s: seed.s, e: seed.e,
+      expired: isExpired,
+    });
+  });
+
+  return db;
+}
+
+// ── Render: legend ────────────────────────────────────────────────────────────
+function renderLegend() {
+  const bar = document.getElementById('legendBar');
+  let html = '';
+  LEGEND_CATS.forEach(k => {
+    const c = CATS[k];
+    html += `<div class="leg-item">
+      <div class="leg-dot" style="background:${c.color}"></div>
+      <span>${c.label}</span>
+    </div>`;
+  });
+  html += `<div class="leg-sep"></div>`;
+  html += `<div class="leg-item">
+    <div class="leg-planned"></div><span>计划日程</span>
+  </div>`;
+  bar.innerHTML = html;
+}
+
+// ── Render: time header with labels ───────────────────────────────────────────
+function renderTimeHeader() {
+  const spacer = document.getElementById('thDateSpacer');
+  spacer.style.width = DATE_COL_W + 'px';
+
+  const tl = document.getElementById('thTl');
+  let html = '';
+
+  for (let h = HR_START; h <= HR_END; h++) {
+    const x = timeToX(h, 0);
+    const isMajor4 = h % 4 === 0;  // label anchor: 4,8,12,16,20,24
+    const isMajor2 = h % 2 === 0;  // medium tick
+
+    // Tick line
+    const tickH = isMajor4 ? '100%' : isMajor2 ? '55%' : '30%';
+    const tickC = isMajor4 ? '#94A3B8' : isMajor2 ? '#CBD5E1' : '#E8F5F9';
+    html += `<div class="th-tick" style="left:${x}px;height:${tickH};background:${tickC}"></div>`;
+
+    // Label at every 4 hours (skip final edge label to avoid clipping)
+    if (isMajor4 && h < HR_END) {
+      html += `<span class="th-label" style="left:${x + 2}px">${h}</span>`;
+    }
+  }
+  tl.innerHTML = html;
+}
+
+// ── Build task block HTML ─────────────────────────────────────────────────────
+function buildTask(t, rowH, type) {
+  const cat  = CATS[t.cat];
+  if (!cat) return '';
+
+  const x0 = timeToX(t.s[0], t.s[1]);
+  const x1 = timeToX(t.e[0], t.e[1]);
+  const w   = Math.max(x1 - x0 - 1, 3);
+
+  const pad = type === 'actual' ? 2 : 1;
+  const h   = rowH - pad * 2;
+  const top = pad;
+
+  // Fill: rgb-based alpha for 3 focus levels; border always solid
+  const alpha = (type === 'actual') ? (FOCUS_ALPHA[t.focus] ?? FOCUS_ALPHA.mid) : 0;
+  const bg    = (type === 'actual')
+    ? `rgba(${cat.rgb},${alpha})`
+    : `rgba(${cat.rgb},0.06)`;
+  const expiredCls = (type === 'planned' && t.expired) ? ' expired' : '';
+
+  const sh = String(t.s[0]).padStart(2,'0');
+  const sm = String(t.s[1]).padStart(2,'0');
+  const eh = String(t.e[0]).padStart(2,'0');
+  const em = String(t.e[1]).padStart(2,'0');
+  const focusLabel = t.focus ? ({high:'高专注',mid:'中专注',low:'低专注'}[t.focus]) : '计划中';
+  const tip = `${t.label} ${sh}:${sm}–${eh}:${em}  [${focusLabel}]`;
+
+  return `<div class="task ${type}${expiredCls}"
+    style="
+      left:${x0}px; width:${w}px;
+      top:${top}px; height:${h}px;
+      background:${bg};
+      border-color:${cat.color};
+    "
+    title="${tip}"
+  ></div>`;
+}
+
+// ── Build grid lines ──────────────────────────────────────────────────────────
+function buildGrid() {
+  let html = '';
+  for (let h = HR_START; h <= HR_END; h++) {
+    const x = timeToX(h, 0);
+    const isMajor = h % 4 === 0;
+    const bg = isMajor ? '#E8F5F9' : '#F8FAFC';
+    html += `<div class="g-line" style="left:${x}px;background:${bg}"></div>`;
+  }
+  return html;
+}
+
+// ── Render: day rows ──────────────────────────────────────────────────────────
+function renderDays() {
+  const days = new Date(curYear, curMonth + 1, 0).getDate();
+  const container = document.getElementById('dayRows');
+  const grid = buildGrid();
+  let html = '';
+
+  for (let d = 1; d <= days; d++) {
+    const date = new Date(curYear, curMonth, d);
+    const isWE     = date.getDay() === 0 || date.getDay() === 6;
+    const isToday  = isSameDay(date, TODAY);
+    const key      = dateKey(curYear, curMonth, d);
+    const dayData  = tasksDB[key] || { actual: [], planned: [] };
+
+    let groupCls = 'day-group';
+    if (isToday)  groupCls += ' is-today';
+    else if (isWE) groupCls += ' is-weekend';
+
+    // Actual tasks HTML
+    let actualHtml = grid;
+    if (isToday) {
+      const nx = timeToX(NOW_H, NOW_M);
+      actualHtml += `<div class="now-line" style="left:${nx}px"><div class="now-dot"></div></div>`;
+    }
+    dayData.actual.forEach(t => {
+      actualHtml += buildTask(t, ROW_ACTUAL_H, 'actual');
+    });
+
+    // Planned tasks HTML (only if any)
+    let plannedRowHtml = '';
+    if (dayData.planned.length > 0) {
+      let ph = grid;
+      dayData.planned.forEach(t => { ph += buildTask(t, ROW_PLANNED_H, 'planned'); });
+      plannedRowHtml = `<div class="tl-planned" style="height:${ROW_PLANNED_H}px">${ph}</div>`;
+    }
+
+    // Date cell (numbers only, no Chinese text)
+    const dcBg = isToday ? 'var(--primary)' : isWE ? '#FFF8ED' : 'white';
+    const indicator = isToday
+      ? '<div class="today-dot"></div>'
+      : isWE ? '<div class="weekend-dot"></div>' : '';
+    const dcHtml = `<div class="date-cell" style="width:${DATE_COL_W}px;background:${dcBg}">
+      <span class="date-num">${d}</span>
+      ${indicator}
+    </div>`;
+
+    html += `<div class="${groupCls}">
+      ${dcHtml}
+      <div class="day-timelines">
+        <div class="tl-actual" style="height:${ROW_ACTUAL_H}px">${actualHtml}</div>
+        ${plannedRowHtml}
+      </div>
+    </div>`;
+  }
+
+  container.innerHTML = html;
+
+  // Scroll today into view
+  if (curMonth === TODAY.getMonth() && curYear === TODAY.getFullYear()) {
+    requestAnimationFrame(() => {
+      const todayEl = container.querySelector('.is-today');
+      if (todayEl) {
+        document.getElementById('scrollWrap').scrollTop =
+          Math.max(0, todayEl.offsetTop - 80);
+      }
+    });
+  }
+}
+
+function renderTitle() {
+  document.getElementById('monthTitle').textContent =
+    `${curYear}年${MONTH_NAMES[curMonth]}`;
+}
+
+// ── Category grid ─────────────────────────────────────────────────────────────
+function renderCatGrid() {
+  const grid = document.getElementById('catGrid');
+  let html = '';
+  Object.entries(CATS).forEach(([k, c]) => {
+    const sel = k === selCat;
+    html += `<button class="cat-btn" data-cat="${k}"
+      style="
+        background:${c.bg};color:${c.text};
+        border-color:${sel ? c.color : 'transparent'};
+        box-shadow:${sel ? `0 0 0 1px ${c.color}` : 'none'};
+      "
+    >${c.label}</button>`;
+  });
+  grid.innerHTML = html;
+  grid.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => { selCat = btn.dataset.cat; renderCatGrid(); });
+  });
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('iDate').value =
+    dateKey(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+  document.getElementById('iName').focus();
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function addTask() {
+  const name     = document.getElementById('iName').value.trim();
+  const dateStr  = document.getElementById('iDate').value;
+  const startStr = document.getElementById('iStart').value;
+  const endStr   = document.getElementById('iEnd').value;
+
+  if (!name || !dateStr || !startStr || !endStr) {
+    showToast('请填写所有字段');
+    return;
+  }
+
+  const [sh, sm] = startStr.split(':').map(Number);
+  const [eh, em] = endStr.split(':').map(Number);
+
+  if (sh < HR_START || eh > HR_END) {
+    showToast(`时间范围：${HR_START}:00 – ${HR_END}:00`);
+    return;
+  }
+  if (sh > eh || (sh === eh && sm >= em)) {
+    showToast('结束时间需晚于开始时间');
+    return;
+  }
+
+  const [ty, tm, td] = dateStr.split('-').map(Number);
+  const taskDate  = new Date(ty, tm - 1, td);
+  const isExpired = taskDate <= new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate());
+
+  if (!tasksDB[dateStr]) tasksDB[dateStr] = { actual: [], planned: [] };
+  tasksDB[dateStr].planned.push({
+    cat: selCat, label: name,
+    s: [sh, sm], e: [eh, em],
+    expired: isExpired,
+  });
+
+  if (ty === curYear && tm - 1 === curMonth) renderDays();
+  closeModal();
+  document.getElementById('iName').value = '';
+  showToast('日程已添加');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+  initDimensions();
+  tasksDB = genMonthTasks(curYear, curMonth);
+
+  renderLegend();
+  renderTimeHeader();
+  renderTitle();
+  renderDays();
+  renderCatGrid();
+
+  // Navigation
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    curMonth--; if (curMonth < 0) { curMonth = 11; curYear--; }
+    tasksDB = genMonthTasks(curYear, curMonth);
+    renderTitle(); renderDays();
+  });
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    curMonth++; if (curMonth > 11) { curMonth = 0; curYear++; }
+    tasksDB = genMonthTasks(curYear, curMonth);
+    renderTitle(); renderDays();
+  });
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    curYear = TODAY.getFullYear(); curMonth = TODAY.getMonth();
+    tasksDB = genMonthTasks(curYear, curMonth);
+    renderTitle(); renderDays();
+  });
+
+  // FAB & modal
+  document.getElementById('fabBtn').addEventListener('click', openModal);
+  document.getElementById('overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+  document.getElementById('confirmBtn').addEventListener('click', addTask);
+  document.getElementById('iName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  // Re-render on resize (orientation change)
+  window.addEventListener('resize', () => {
+    initDimensions();
+    renderTimeHeader();
+    renderDays();
+  });
+})();
+</script>
+</body>
+</html>

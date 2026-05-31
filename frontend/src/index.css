@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --rose:    #C86878;
+  --peach:   #C88860;
+  --primary: #9B5468;
+  --accent:  #E07858;
+  --text:    #2E1A22;
+  --sub:     #8A6A74;
+  --bg:      #FDF6F8;
+  --border:  #F0E4E8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  height: 100dvh;
+}
+
+body {
+  font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  touch-action: manipulation;
+}

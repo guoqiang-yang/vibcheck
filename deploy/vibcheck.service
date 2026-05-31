@@ -1,0 +1,14 @@
+[Unit]
+Description=VibCheck Backend
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/vibcheck/backend
+ExecStart=/opt/vibcheck/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

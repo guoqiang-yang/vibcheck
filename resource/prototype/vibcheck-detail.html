@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VibCheck Daily · 详情</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --rose:     #C86878;
+      --peach:    #C88860;
+      --primary:  #9B5468;
+      --accent:   #E07858;
+      --text:     #2E1A22;
+      --sub:      #8A6A74;
+      --bg:       #FDF6F8;
+      --card-bg:  #FFFFFF;
+      --border:   #F0E4E8;
+
+      /* Category colors */
+      --work-rgb:     79,134,232;
+      --exercise-rgb: 45,189,138;
+      --meeting-rgb:  155,114,232;
+      --learning-rgb: 240,136,58;
+      --personal-rgb: 232,120,152;
+
+      --work-color:     #4F86E8;
+      --exercise-color: #2DBD8A;
+      --meeting-color:  #9B72E8;
+      --learning-color: #F0883A;
+      --personal-color: #E87898;
+    }
+
+    html, body { height: 100%; height: 100dvh; }
+
+    body {
+      font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── App shell ─────────────────────────────────── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+      background: var(--bg);
+      box-shadow: 0 0 40px rgba(0,0,0,0.10);
+    }
+
+    /* ── Header ────────────────────────────────────── */
+    .header {
+      background: linear-gradient(130deg, var(--rose) 0%, var(--peach) 100%);
+      color: white;
+      flex-shrink: 0;
+    }
+
+    /* Top nav row */
+    .header-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px 0;
+    }
+
+    .nav-side {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 64px;
+    }
+
+    .nav-side.right { justify-content: flex-end; }
+
+    .icon-btn {
+      width: 30px; height: 30px;
+      border: none;
+      background: rgba(255,255,255,0.16);
+      color: white; border-radius: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: manipulation;
+      transition: background 0.1s;
+    }
+    .icon-btn:active { background: rgba(255,255,255,0.30); }
+
+    .header-date {
+      text-align: center;
+    }
+    .date-main {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .date-sub {
+      font-size: 10px;
+      font-weight: 400;
+      opacity: 0.72;
+      margin-top: 1px;
+    }
+
+    /* Day mini-timeline in header */
+    .mini-tl-wrap {
+      padding: 10px 14px 12px;
+    }
+    .mini-tl {
+      position: relative;
+      height: 28px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 6px;
+      overflow: visible;
+    }
+    .mini-label {
+      position: absolute;
+      bottom: -14px;
+      font-size: 8px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.60);
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .mini-block {
+      position: absolute;
+      top: 4px;
+      height: calc(100% - 8px);
+      border-radius: 4px;
+    }
+    .mini-block.planned {
+      border: 1.5px dashed rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.08);
+    }
+    /* Current time dot */
+    .mini-now {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 6px; height: 6px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.4);
+    }
+    /* Time offset labels row */
+    .mini-labels {
+      position: relative;
+      height: 16px;
+      margin-top: 2px;
+    }
+
+    /* ── Day stats strip ───────────────────────────── */
+    .stats-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .stats-strip::-webkit-scrollbar { display: none; }
+
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border-radius: 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .stat-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .stat-label { font-size: 11px; font-weight: 500; color: var(--sub); }
+    .stat-value { font-size: 11px; font-weight: 700; color: var(--text); }
+
+    /* ── Scroll area ───────────────────────────────── */
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+      padding: 14px 14px 32px;
+    }
+    .scroll-area::-webkit-scrollbar { width: 2px; }
+    .scroll-area::-webkit-scrollbar-thumb {
+      background: rgba(155,84,104,0.25);
+      border-radius: 1px;
+    }
+
+    /* ── Section label ─────────────────────────────── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--sub);
+      text-transform: uppercase;
+      margin: 0 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .section-label + .section-label { margin-top: 18px; }
+
+    /* ── Task card ─────────────────────────────────── */
+    .task-card {
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+
+    /* Card header */
+    .card-head {
+      padding: 11px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-head-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .card-cat-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .card-name {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-time {
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Focus level indicator (3 dots) */
+    .focus-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 14px 10px;
+    }
+    .focus-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+    }
+    .focus-label {
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 2px;
+    }
+
+    /* Divider inside card */
+    .card-divider {
+      height: 1px;
+      margin: 0 14px;
+    }
+
+    /* Card body (content items) */
+    .card-body {
+      padding: 10px 14px 12px;
+    }
+    .card-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      padding: 3px 0;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .card-item-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+    .card-item-text { color: inherit; opacity: 0.82; }
+
+    /* ── Planned task card (dashed) ────────────────── */
+    .task-card.planned {
+      box-shadow: none;
+    }
+    .task-card.planned .card-head {
+      border-bottom: none;
+    }
+    .planned-inner {
+      border: 1.5px dashed;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .planned-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      opacity: 0.65;
+    }
+
+    /* ── Add FAB ───────────────────────────────────── */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: calc(50% - 215px + 16px);
+      width: 46px; height: 46px;
+      background: var(--accent);
+      color: white;
+      border: none; border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(224,120,88,0.38);
+      cursor: pointer; z-index: 60;
+      touch-action: manipulation;
+      transition: transform 0.1s;
+    }
+    .fab:active { transform: scale(0.90); }
+    @media (max-width: 430px) { .fab { right: 16px; } }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-nav">
+      <div class="nav-side">
+        <button class="icon-btn" aria-label="返回">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="header-date">
+        <div class="date-main">5月26日&nbsp;周一</div>
+        <div class="date-sub">VibCheck Daily</div>
+      </div>
+
+      <div class="nav-side right">
+        <button class="icon-btn" aria-label="下一天">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mini timeline -->
+    <div class="mini-tl-wrap">
+      <div class="mini-tl" id="miniTl"></div>
+      <div class="mini-labels" id="miniLabels"></div>
+    </div>
+  </header>
+
+  <!-- ── Stats strip ── -->
+  <div class="stats-strip">
+    <div class="stat-chip">
+      <div class="stat-dot" style="background:#4F86E8"></div>
+      <span class="stat-label">专注</span>
+      <span class="stat-value">5.5h</span>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-dot" style="background:#2DBD8A"></div>
+      <span class="stat-label">运动</span>
+      <span class="stat-value">1h</span>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-dot" style="background:#9B72E8"></div>
+      <span class="stat-label">会议</span>
+      <span class="stat-value">1.5h</span>
+    </div>
+    <div class="stat-chip">
+      <div class="stat-dot" style="background:#E07858"></div>
+      <span class="stat-label">完成</span>
+      <span class="stat-value">3 / 4</span>
+    </div>
+  </div>
+
+  <!-- ── Scrollable content ── -->
+  <div class="scroll-area">
+
+    <!-- Section: Actual -->
+    <div class="section-label">已记录</div>
+
+    <!-- Card 1: Exercise · HIGH focus → solid bg -->
+    <div class="task-card" id="card-exercise">
+      <div class="card-head" style="background:rgba(45,189,138,0.88);">
+        <div class="card-head-left">
+          <div class="card-cat-dot" style="background:white;opacity:0.9"></div>
+          <span class="card-name" style="color:white">晨练</span>
+        </div>
+        <span class="card-time" style="color:rgba(255,255,255,0.88)">07:00 – 08:00</span>
+      </div>
+      <div class="focus-row" style="background:rgba(45,189,138,0.88);">
+        <div class="focus-dot" style="background:white"></div>
+        <div class="focus-dot" style="background:white"></div>
+        <div class="focus-dot" style="background:white"></div>
+        <span class="focus-label" style="color:rgba(255,255,255,0.85)">高专注</span>
+      </div>
+      <div class="card-divider" style="background:rgba(45,189,138,0.15)"></div>
+      <div class="card-body" style="background:rgba(45,189,138,0.08)">
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#2DBD8A"></div>
+          <span class="card-item-text" style="color:#065F46">热身拉伸 10 分钟，关节活动充分</span>
+        </div>
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#2DBD8A"></div>
+          <span class="card-item-text" style="color:#065F46">有氧跑步 35 分钟，配速 5'40"</span>
+        </div>
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#2DBD8A"></div>
+          <span class="card-item-text" style="color:#065F46">拉伸放松 10 分钟，心率恢复正常</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Work · HIGH focus → solid bg -->
+    <div class="task-card">
+      <div class="card-head" style="background:rgba(79,134,232,0.88);">
+        <div class="card-head-left">
+          <div class="card-cat-dot" style="background:white;opacity:0.9"></div>
+          <span class="card-name" style="color:white">深度工作</span>
+        </div>
+        <span class="card-time" style="color:rgba(255,255,255,0.88)">09:00 – 12:30</span>
+      </div>
+      <div class="focus-row" style="background:rgba(79,134,232,0.88);">
+        <div class="focus-dot" style="background:white"></div>
+        <div class="focus-dot" style="background:white"></div>
+        <div class="focus-dot" style="background:white"></div>
+        <span class="focus-label" style="color:rgba(255,255,255,0.85)">高专注</span>
+      </div>
+      <div class="card-divider" style="background:rgba(79,134,232,0.15)"></div>
+      <div class="card-body" style="background:rgba(79,134,232,0.07)">
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#4F86E8"></div>
+          <span class="card-item-text" style="color:#1E3A8A">拆解今日核心任务，排列优先级</span>
+        </div>
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#4F86E8"></div>
+          <span class="card-item-text" style="color:#1E3A8A">完成日历原型核心交互逻辑开发</span>
+        </div>
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#4F86E8"></div>
+          <span class="card-item-text" style="color:#1E3A8A">代码 Review，提交 2 个 PR</span>
+        </div>
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#4F86E8"></div>
+          <span class="card-item-text" style="color:#1E3A8A">更新技术文档 &amp; 接口说明</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Meeting · MID focus → light bg -->
+    <div class="task-card">
+      <div class="card-head" style="background:rgba(155,114,232,0.14);border-bottom:1px solid rgba(155,114,232,0.15);">
+        <div class="card-head-left">
+          <div class="card-cat-dot" style="background:#9B72E8"></div>
+          <span class="card-name" style="color:#3B0764">团队会议</span>
+        </div>
+        <span class="card-time" style="color:#6D28D9">14:00 – 15:30</span>
+      </div>
+      <div class="focus-row" style="background:rgba(155,114,232,0.14);">
+        <div class="focus-dot" style="background:#9B72E8"></div>
+        <div class="focus-dot" style="background:#9B72E8"></div>
+        <div class="focus-dot" style="background:rgba(155,114,232,0.25);border:1px solid #9B72E8"></div>
+        <span class="focus-label" style="color:#6D28D9">中专注</span>
+      </div>
+      <div class="card-divider" style="background:rgba(155,114,232,0.15)"></div>
+      <div class="card-body" style="background:rgba(155,114,232,0.06)">
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#9B72E8"></div>
+          <span class="card-item-text" style="color:#3B0764">本周进度复盘，同步各方状态</span>
+        </div>
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#9B72E8"></div>
+          <span class="card-item-text" style="color:#3B0764">确认 MVP 功能范围与排期</span>
+        </div>
+        <div class="card-item">
+          <div class="card-item-dot" style="background:#9B72E8"></div>
+          <span class="card-item-text" style="color:#3B0764">讨论并分解下周开发任务</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Planned -->
+    <div class="section-label" style="margin-top:18px">计划日程</div>
+
+    <!-- Planned Card 1: Learning -->
+    <div class="task-card planned" style="margin-bottom:10px">
+      <div class="planned-inner" style="border-color:rgba(240,136,58,0.55);">
+        <div class="planned-label" style="color:#F0883A;background:rgba(240,136,58,0.06)">计划中</div>
+        <div class="card-head" style="background:rgba(240,136,58,0.08);padding-top:6px;">
+          <div class="card-head-left">
+            <div class="card-cat-dot" style="background:#F0883A"></div>
+            <span class="card-name" style="color:#7C2D12">技术学习</span>
+          </div>
+          <span class="card-time" style="color:#C2650A">19:30 – 21:00</span>
+        </div>
+        <div class="card-divider" style="background:rgba(240,136,58,0.15)"></div>
+        <div class="card-body" style="background:rgba(240,136,58,0.06)">
+          <div class="card-item">
+            <div class="card-item-dot" style="background:#F0883A"></div>
+            <span class="card-item-text" style="color:#7C2D12">阅读《系统设计面试》第 8 章</span>
+          </div>
+          <div class="card-item">
+            <div class="card-item-dot" style="background:#F0883A"></div>
+            <span class="card-item-text" style="color:#7C2D12">整理本周学习笔记 &amp; 知识点</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Planned Card 2: Meeting (expired/past planned) -->
+    <div class="task-card planned" style="margin-bottom:10px;opacity:0.55;">
+      <div class="planned-inner" style="border-color:rgba(155,114,232,0.55);">
+        <div class="planned-label" style="color:#9B72E8;background:rgba(155,114,232,0.06)">已过期计划</div>
+        <div class="card-head" style="background:rgba(155,114,232,0.08);padding-top:6px;">
+          <div class="card-head-left">
+            <div class="card-cat-dot" style="background:#9B72E8"></div>
+            <span class="card-name" style="color:#3B0764">客户演示</span>
+          </div>
+          <span class="card-time" style="color:#6D28D9">16:00 – 17:30</span>
+        </div>
+        <div class="card-divider" style="background:rgba(155,114,232,0.15)"></div>
+        <div class="card-body" style="background:rgba(155,114,232,0.06)">
+          <div class="card-item">
+            <div class="card-item-dot" style="background:#9B72E8"></div>
+            <span class="card-item-text" style="color:#3B0764">产品原型演示 &amp; 功能介绍</span>
+          </div>
+          <div class="card-item">
+            <div class="card-item-dot" style="background:#9B72E8"></div>
+            <span class="card-item-text" style="color:#3B0764">收集反馈，记录改进需求</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll-area -->
+</div><!-- /app -->
+
+<!-- FAB -->
+<button class="fab" aria-label="添加事项">
+  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<script>
+// ── Mini timeline config ──────────────────────────────────────────────────────
+const HR_START  = 4;
+const HR_END    = 24;
+const TOTAL_HRS = HR_END - HR_START;
+const NOW_H = 14, NOW_M = 30;   // demo: 14:30
+
+// Day's tasks for the mini timeline
+const DAY_TASKS = [
+  { s:[7,0],  e:[8,0],   rgb:'45,189,138',  planned:false },
+  { s:[9,0],  e:[12,30], rgb:'79,134,232',  planned:false },
+  { s:[14,0], e:[15,30], rgb:'155,114,232', planned:false },
+  { s:[16,0], e:[17,30], rgb:'155,114,232', planned:true  },
+  { s:[19,30],e:[21,0],  rgb:'240,136,58',  planned:true  },
+];
+
+const LABEL_HRS = [4, 8, 12, 16, 20];
+
+function initMiniTimeline() {
+  const tl = document.getElementById('miniTl');
+  const lb = document.getElementById('miniLabels');
+  const W  = tl.offsetWidth || (window.innerWidth > 430 ? 430 : window.innerWidth) - 28;
+
+  function toX(h, m) {
+    return ((h - HR_START) + m / 60) / TOTAL_HRS * W;
+  }
+
+  let tlHtml = '', lbHtml = '';
+
+  // Task blocks
+  DAY_TASKS.forEach(t => {
+    const x0 = toX(t.s[0], t.s[1]);
+    const x1 = toX(t.e[0], t.e[1]);
+    const w  = Math.max(x1 - x0 - 1, 4);
+    if (t.planned) {
+      tlHtml += `<div class="mini-block planned" style="left:${x0}px;width:${w}px;border-color:rgba(255,255,255,0.55)"></div>`;
+    } else {
+      tlHtml += `<div class="mini-block" style="left:${x0}px;width:${w}px;background:rgba(255,255,255,0.72)"></div>`;
+    }
+  });
+
+  // Now indicator
+  const nx = toX(NOW_H, NOW_M);
+  tlHtml += `<div class="mini-now" style="left:${nx}px"></div>`;
+
+  // Hour labels
+  LABEL_HRS.forEach(h => {
+    const x = toX(h, 0);
+    lbHtml += `<span class="mini-label" style="left:${x}px">${h}</span>`;
+  });
+
+  tl.innerHTML = tlHtml;
+  lb.innerHTML = lbHtml;
+}
+
+window.addEventListener('DOMContentLoaded', initMiniTimeline);
+window.addEventListener('resize', initMiniTimeline);
+</script>
+</body>
+</html>
