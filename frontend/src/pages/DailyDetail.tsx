@@ -477,12 +477,12 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
           )}
 
           {/* Times */}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Field label="开始时间" style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: needsEndTime ? '1fr 1fr' : '1fr', gap: 10 }}>
+            <Field label="开始时间">
               <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ ...inputStyle, minWidth: 0 }} />
             </Field>
             {needsEndTime && (
-              <Field label="结束时间" style={{ flex: 1, minWidth: 0 }}>
+              <Field label="结束时间">
                 <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ ...inputStyle, minWidth: 0 }} />
               </Field>
             )}
