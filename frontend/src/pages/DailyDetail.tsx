@@ -23,10 +23,14 @@ function formatDateDisplay(dateStr: string) {
   return `${d.getMonth() + 1}月${d.getDate()}日 周${days[d.getDay()]}`
 }
 
+function localDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function shiftDate(dateStr: string, delta: number) {
   const d = new Date(dateStr + 'T00:00:00')
   d.setDate(d.getDate() + delta)
-  return d.toISOString().slice(0, 10)
+  return localDateStr(d)
 }
 
 function fmtTime(t: string) { return t.slice(0, 5) }
@@ -566,7 +570,7 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
 // ── Main page ─────────────────────────────────────────────────────
 
 export default function DailyDetail() {
-  const { date = new Date().toISOString().slice(0, 10) } = useParams<{ date: string }>()
+  const { date = localDateStr(new Date()) } = useParams<{ date: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
