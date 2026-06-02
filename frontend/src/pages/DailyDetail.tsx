@@ -306,7 +306,7 @@ function Field({ label, children, style }: { label: string; children: React.Reac
 
 const inputStyle: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box', padding: '9px 12px',
-  border: '1.5px solid #E0D4D8', borderRadius: 10, fontSize: 14,
+  border: '1.5px solid #E0D4D8', borderRadius: 10, fontSize: 16,
   color: '#2E1A22', background: '#FDFAFA', outline: 'none',
   fontFamily: 'inherit',
 }
@@ -440,7 +440,7 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
         </div>
 
         {/* Scrollable form area */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 8px', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 16px 8px', WebkitOverflowScrolling: 'touch' }}>
 
           {/* Title */}
           <Field label="标题">
@@ -478,12 +478,12 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
 
           {/* Times */}
           <div style={{ display: 'flex', gap: 10 }}>
-            <Field label="开始时间" style={{ flex: 1 }}>
-              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
+            <Field label="开始时间" style={{ flex: 1, minWidth: 0 }}>
+              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ ...inputStyle, minWidth: 0 }} />
             </Field>
             {needsEndTime && (
-              <Field label="结束时间" style={{ flex: 1 }}>
-                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
+              <Field label="结束时间" style={{ flex: 1, minWidth: 0 }}>
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ ...inputStyle, minWidth: 0 }} />
               </Field>
             )}
           </div>
