@@ -43,10 +43,14 @@
   - `DailyDetail.tsx:310` — `inputStyle.fontSize` 从 `14` 改为 `16`（≥16px 才不触发 iOS 自动缩放）
 - **状态**：🟢 已修复
 
-### BUG-001-reopen · 时间框遮挡（部分机型）
+### BUG-001-reopen · 时间框遮挡 + 样式丢失（iOS 机型）
 - **发现日期**：2026-06-03
-- **描述**：部分机型两个时间框有遮挡，部分机型正常
-- **状态**：🟡 排查中（已用 CSS Grid 修复主要场景，持续观察）
+- **修复日期**：2026-06-03
+- **截图**：`resource/bugfix/mvp/detail-0603-03.png`
+- **描述**：手机上两个时间框重叠，且 border/background/borderRadius 样式全部消失
+- **Root Cause**：iOS Safari 对 `input[type="time"]` 默认施加 `-webkit-appearance: auto`，覆盖所有自定义 CSS 样式，并用原生 size 渲染，导致超出 grid cell 产生重叠；PC 浏览器无此行为故模拟正常
+- **Fix**：`DailyDetail.tsx:486,490` — 两个时间 input 加 `WebkitAppearance: 'none', appearance: 'none'`，关闭原生渲染，让 input 完全受 CSS 控制
+- **状态**：🟢 已修复
 
 ---
 
