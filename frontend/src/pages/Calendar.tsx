@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
+import TabBar from '../components/TabBar'
 import type { TimeEvent } from '../types'
 
 // ── Constants ────────────────────────────────────────────────────
@@ -153,7 +154,7 @@ export default function Calendar() {
         if (ev.type === 'inspiration') {
           const [sh, sm] = ev.start_time.split(':').map(Number)
           const x = toX(tlWidth, sh, sm)
-          actualHtml += `<div style="position:absolute;top:50%;left:${x}px;transform:translate(-50%,-50%);font-size:9px;line-height:1;pointer-events:none">⚡</div>`
+          actualHtml += `<div style="position:absolute;top:50%;left:${x}px;transform:translate(-50%,-50%);pointer-events:none;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.09 12.96a.5.5 0 0 0 .41.79H11l-1 8.25L19.91 11.04a.5.5 0 0 0-.41-.79H13L14 2z"/></svg></div>`
           return
         }
         const cat = ev.category_id != null ? catMap.get(ev.category_id) : undefined
@@ -271,6 +272,8 @@ export default function Calendar() {
         {/* Day rows (drawn by useEffect) */}
         <div ref={dayRowsRef} />
       </div>
+
+      <TabBar />
     </div>
   )
 }

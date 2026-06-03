@@ -162,7 +162,9 @@ function InspirationRow({ event, onClick }: { event: TimeEvent; onClick?: () => 
   return (
     <div onClick={onClick} style={{ marginBottom: 8, background: 'white', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', cursor: onClick ? 'pointer' : undefined, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px' }}>
-        <span style={{ fontSize: 15, flexShrink: 0 }}>⚡</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <path d="M13 2L4.09 12.96a.5.5 0 0 0 .41.79H11l-1 8.25L19.91 11.04a.5.5 0 0 0-.41-.79H13L14 2z"/>
+        </svg>
         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#2E1A22', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {event.title}
         </span>
@@ -198,7 +200,7 @@ function MiniTimeline({ events, categories, dateStr }: {
     events.forEach(ev => {
       const [sh, sm] = ev.start_time.split(':').map(Number)
       if (ev.type === 'inspiration') {
-        html += `<div style="position:absolute;top:50%;left:${toX(sh,sm)}px;transform:translate(-50%,-50%);font-size:10px">⚡</div>`
+        html += `<div style="position:absolute;top:50%;left:${toX(sh,sm)}px;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.09 12.96a.5.5 0 0 0 .41.79H11l-1 8.25L19.91 11.04a.5.5 0 0 0-.41-.79H13L14 2z"/></svg></div>`
         return
       }
       const [eh, em] = (ev.end_time ?? `${HR_END}:00`).split(':').map(Number)

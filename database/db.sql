@@ -7,6 +7,7 @@ CREATE TABLE t_users (
   id          INT          NOT NULL,
   name        VARCHAR(50)  NOT NULL,
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 );
 
@@ -18,10 +19,17 @@ CREATE TABLE t_categories (
   user_id     INT          NOT NULL,
   name        VARCHAR(50)  NOT NULL,
   color       VARCHAR(7)   NOT NULL COMMENT 'hex色值，如 #4F86E8',
+  is_deleted  TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '逻辑删除：0=正常，1=已删除',
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_user_id (user_id)
 );
+
+-- v2.0 迁移（已有数据库执行此语句）：
+-- ALTER TABLE t_categories ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0 COMMENT '逻辑删除：0=正常，1=已删除';
+-- ALTER TABLE t_categories ADD COLUMN   updated_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+-- ALTER TABLE t_users ADD COLUMN   updated_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 
 INSERT INTO t_categories (user_id, name, color) VALUES
   (1000, '工作', '#4F86E8'),

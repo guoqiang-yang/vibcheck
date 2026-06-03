@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, DateTime, func
+from sqlalchemy import Integer, String, SmallInteger, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
 
@@ -10,4 +10,5 @@ class Category(Base):
     user_id: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     color: Mapped[str] = mapped_column(String(7), nullable=False)
+    is_deleted: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
