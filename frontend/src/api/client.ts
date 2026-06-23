@@ -3,6 +3,8 @@ import type {
   Category, CategoryCreate, CategoryUpdate,
   TimeEvent, TimeEventCreate, TimeEventUpdate,
   WeeklyStats, MonthlyStats,
+  BillCategory, BillItem, BillListResponse, BillCreate, BillUpdate,
+  Project, ProjectCreate, ProjectUpdate,
 } from '../types'
 
 const http = axios.create({ baseURL: '/api/v1' })
@@ -43,4 +45,43 @@ export const api = {
 
   getMonthlyStats: (year: number, month: number) =>
     http.get<MonthlyStats>('/stats/monthly', { params: { year, month } }).then(r => r.data),
+
+  // ── Bill Categories ───────────────────────────────────────────────
+  getBillCategories: () =>
+    http.get<BillCategory[]>('/bill-categories').then(r => r.data),
+
+  createBillCategory: (name: string) =>
+    http.post<BillCategory>('/bill-categories', { name }).then(r => r.data),
+
+  updateBillCategory: (id: number, name: string) =>
+    http.put<BillCategory>(`/bill-categories/${id}`, { name }).then(r => r.data),
+
+  deleteBillCategory: (id: number) =>
+    http.delete(`/bill-categories/${id}`),
+
+  // ── Projects ──────────────────────────────────────────────────────
+  getProjects: () =>
+    http.get<Project[]>('/projects').then(r => r.data),
+
+  createProject: (body: ProjectCreate) =>
+    http.post<Project>('/projects', body).then(r => r.data),
+
+  updateProject: (id: number, body: ProjectUpdate) =>
+    http.put<Project>(`/projects/${id}`, body).then(r => r.data),
+
+  deleteProject: (id: number) =>
+    http.delete(`/projects/${id}`),
+
+  // ── Bills ─────────────────────────────────────────────────────────
+  getBills: (params: { year?: number; month?: number; limit?: number; offset?: number }) =>
+    http.get<BillListResponse>('/bills', { params }).then(r => r.data),
+
+  createBill: (body: BillCreate) =>
+    http.post<BillItem>('/bills', body).then(r => r.data),
+
+  updateBill: (id: number, body: BillUpdate) =>
+    http.put<BillItem>(`/bills/${id}`, body).then(r => r.data),
+
+  deleteBill: (id: number) =>
+    http.delete(`/bills/${id}`),
 }

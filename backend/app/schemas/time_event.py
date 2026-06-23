@@ -14,6 +14,7 @@ class TimeEventCreate(BaseModel):
     engagement: Optional[Engagement] = None
     note: Optional[str] = None
     content: Optional[str] = None
+    sub_category: Optional[str] = None
 
 
 class TimeEventUpdate(BaseModel):
@@ -25,6 +26,7 @@ class TimeEventUpdate(BaseModel):
     engagement: Optional[Engagement] = None
     note: Optional[str] = None
     content: Optional[str] = None
+    sub_category: Optional[str] = None
 
 
 class TimeEventResponse(BaseModel):
@@ -40,6 +42,7 @@ class TimeEventResponse(BaseModel):
     engagement: Optional[Engagement]
     note: Optional[str]
     content: Optional[str]
+    sub_category: Optional[str]
     created_at: datetime
     updated_at: datetime
 

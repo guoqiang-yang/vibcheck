@@ -93,6 +93,11 @@ function ActualCard({ event, category, onClick }: { event: TimeEvent; category?:
           <span style={{ fontSize: 14, fontWeight: 700, color: isHigh ? 'white' : '#2E1A22', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {event.title}
           </span>
+          {event.sub_category && (
+            <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6, flexShrink: 0, background: isHigh ? 'rgba(255,255,255,0.2)' : `rgba(${rgb},0.12)`, color: isHigh ? 'rgba(255,255,255,0.85)' : color }}>
+              {event.sub_category}
+            </span>
+          )}
         </div>
         <span style={{ fontSize: 11, fontWeight: 500, flexShrink: 0, color: isHigh ? 'rgba(255,255,255,0.88)' : `rgba(${rgb},0.9)` }}>
           {fmtTime(event.start_time)}{event.end_time ? ` – ${fmtTime(event.end_time)}` : ''}
@@ -156,18 +161,40 @@ function PlannedCard({ event, category, expired, onClick }: { event: TimeEvent; 
   )
 }
 
+// ── Inspiration icons ─────────────────────────────────────────────
+
+const LightbulbIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <path d="M9 21h6M12 3a6 6 0 0 1 4.243 10.243C15.126 14.36 15 15.18 15 16H9c0-.82-.126-1.64-1.243-2.757A6 6 0 0 1 12 3z"/>
+    <path d="M9 16h6"/>
+  </svg>
+)
+
+function InspirationIcon({ subCategory, size = 18 }: { subCategory: string | null; size?: number }) {
+  if (subCategory === '随笔') {
+    return <span style={{ fontSize: size, lineHeight: 1, flexShrink: 0 }}>✏️</span>
+  }
+  return <LightbulbIcon size={size} />
+}
+
 // ── Inspiration row ───────────────────────────────────────────────
 
 function InspirationRow({ event, onClick }: { event: TimeEvent; onClick?: () => void }) {
+  const isEssay = event.sub_category === '随笔'
   return (
     <div onClick={onClick} style={{ marginBottom: 8, background: 'white', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', cursor: onClick ? 'pointer' : undefined, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px' }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-          <path d="M13 2L4.09 12.96a.5.5 0 0 0 .41.79H11l-1 8.25L19.91 11.04a.5.5 0 0 0-.41-.79H13L14 2z"/>
-        </svg>
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#2E1A22', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {event.title}
-        </span>
+        <InspirationIcon subCategory={event.sub_category} size={18} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#2E1A22', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {event.title}
+            </span>
+            {isEssay && (
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#8A6A74', background: '#F0E4E8', borderRadius: 6, padding: '1px 6px', flexShrink: 0 }}>随笔</span>
+            )}
+          </div>
+        </div>
         <span style={{ fontSize: 11, color: '#8A6A74', flexShrink: 0 }}>{fmtTime(event.start_time)}</span>
       </div>
       {event.content && (
@@ -200,7 +227,11 @@ function MiniTimeline({ events, categories, dateStr }: {
     events.forEach(ev => {
       const [sh, sm] = ev.start_time.split(':').map(Number)
       if (ev.type === 'inspiration') {
-        html += `<div style="position:absolute;top:50%;left:${toX(sh,sm)}px;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.09 12.96a.5.5 0 0 0 .41.79H11l-1 8.25L19.91 11.04a.5.5 0 0 0-.41-.79H13L14 2z"/></svg></div>`
+        const isEssay = ev.sub_category === '随笔'
+        const icon = isEssay
+          ? `<span style="font-size:11px;line-height:1">✏️</span>`
+          : `<svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6M12 3a6 6 0 0 1 4.243 10.243C15.126 14.36 15 15.18 15 16H9c0-.82-.126-1.64-1.243-2.757A6 6 0 0 1 12 3z"/><path d="M9 16h6"/></svg>`
+        html += `<div style="position:absolute;top:50%;left:${toX(sh,sm)}px;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center">${icon}</div>`
         return
       }
       const [eh, em] = (ev.end_time ?? `${HR_END}:00`).split(':').map(Number)
@@ -320,9 +351,14 @@ const inputStyle: React.CSSProperties = {
 // ── Add Event Sheet ───────────────────────────────────────────────
 
 const TYPE_TABS = [
-  { key: 'actual' as const, label: '已记录' },
+  { key: 'actual' as const, label: '记录' },
   { key: 'planned' as const, label: '计划' },
-  { key: 'inspiration' as const, label: '⚡ 灵感' },
+  { key: 'inspiration' as const, label: '💡 灵感' },
+]
+
+const INSPIRATION_SUB_TABS = [
+  { key: '灵感', label: '💡 灵感' },
+  { key: '随笔', label: '✏️ 随笔' },
 ]
 
 const ENGAGEMENT_OPTS: { key: Engagement; label: string; dots: number }[] = [
@@ -346,6 +382,10 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
 }) {
   const isEdit = event != null
   const [type, setType] = useState<'actual' | 'planned' | 'inspiration'>(event?.type ?? 'actual')
+  const [inspirationSub, setInspirationSub] = useState<string>(event?.sub_category === '随笔' ? '随笔' : '灵感')
+  const [subCategory, setSubCategory] = useState(
+    event?.type !== 'inspiration' ? (event?.sub_category ?? '') : ''
+  )
   const [title, setTitle] = useState(event?.title ?? '')
   const [categoryId, setCategoryId] = useState<number | undefined>(event?.category_id ?? categories[0]?.id)
   const [startTime, setStartTime] = useState(() => event?.start_time.slice(0, 5) ?? nowHHMM())
@@ -367,6 +407,10 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
   async function handleSubmit() {
     if (!canSubmit || saving) return
     setSaving(true)
+    const resolvedSubCategory = type === 'inspiration'
+      ? inspirationSub
+      : (subCategory.trim() || undefined)
+
     try {
       if (isEdit && event) {
         await api.updateEvent(event.uuid, {
@@ -377,6 +421,7 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
           ...(needsEndTime && endTime ? { end_time: endTime } : { end_time: undefined }),
           ...(needsEngagement ? { engagement } : {}),
           content: content.trim() || undefined,
+          sub_category: resolvedSubCategory,
         })
       } else {
         await api.createEvent({
@@ -388,6 +433,7 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
           ...(needsEndTime && endTime ? { end_time: endTime } : {}),
           ...(needsEngagement ? { engagement } : {}),
           ...(content.trim() ? { content: content.trim() } : {}),
+          sub_category: resolvedSubCategory,
         })
       }
       onSaved()
@@ -448,12 +494,35 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
         {/* Scrollable form area */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '0 16px 8px', WebkitOverflowScrolling: 'touch' }}>
 
+          {/* Inspiration sub-type selector */}
+          {type === 'inspiration' && (
+            <Field label="类型">
+              <div style={{ display: 'flex', gap: 8 }}>
+                {INSPIRATION_SUB_TABS.map(tab => (
+                  <button key={tab.key} onClick={() => setInspirationSub(tab.key)} style={{
+                    flex: 1, padding: '7px 0', border: 'none', borderRadius: 10,
+                    cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                    background: inspirationSub === tab.key ? '#C86878' : '#F5EDEF',
+                    color: inspirationSub === tab.key ? 'white' : '#8A6A74',
+                    transition: 'background 0.15s',
+                  }}>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+
           {/* Title */}
           <Field label="标题">
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder={type === 'inspiration' ? '灵感一闪...' : '事项名称'}
+              placeholder={
+                type === 'inspiration'
+                  ? (inspirationSub === '随笔' ? '记录工作感悟…' : '灵感一闪…')
+                  : '事项名称'
+              }
               style={inputStyle}
             />
           </Field>
@@ -522,6 +591,18 @@ function AddEventSheet({ date, categories, event, onClose, onSaved, onDeleted }:
                   )
                 })}
               </div>
+            </Field>
+          )}
+
+          {/* Sub-category (actual / planned only) */}
+          {type !== 'inspiration' && (
+            <Field label="子分类（选填，2-8字）">
+              <input
+                value={subCategory}
+                onChange={e => setSubCategory(e.target.value.slice(0, 8))}
+                placeholder="如：施工管理、方案设计…"
+                style={inputStyle}
+              />
             </Field>
           )}
 
@@ -660,7 +741,7 @@ export default function DailyDetail() {
         {/* Actual + inspirations */}
         {sortedActual.length > 0 && (
           <>
-            <SectionLabel>已记录</SectionLabel>
+            <SectionLabel>记录</SectionLabel>
             {sortedActual.map(ev =>
               ev.type === 'inspiration'
                 ? <InspirationRow key={ev.uuid} event={ev} onClick={() => openEdit(ev)} />

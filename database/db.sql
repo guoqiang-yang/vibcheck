@@ -57,3 +57,61 @@ CREATE TABLE t_time_events (
   UNIQUE KEY uk_uuid (uuid),
   KEY idx_user_date (user_id, date)
 );
+
+-- ── v3.0 迁移（已有数据库执行此语句）────────────────────────────────
+-- ALTER TABLE t_time_events ADD COLUMN sub_category VARCHAR(20) DEFAULT NULL COMMENT '子分类：inspiration下为灵感/随笔；actual/planned下为用户自定义子分类';
+
+-- ── 账单分类表 ───────────────────────────────────────────────────────
+CREATE TABLE t_bill_categories (
+  id          INT          NOT NULL AUTO_INCREMENT,
+  user_id     INT          NOT NULL DEFAULT 1000,
+  name        VARCHAR(50)  NOT NULL COMMENT '分类名称',
+  is_deleted  TINYINT(1)   NOT NULL DEFAULT 0,
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id)
+);
+
+-- ── 工程表 ──────────────────────────────────────────────────────────
+CREATE TABLE t_projects (
+  id               INT           NOT NULL AUTO_INCREMENT,
+  user_id          INT           NOT NULL DEFAULT 1000,
+  maintainer       VARCHAR(32)   NOT NULL COMMENT '负责人',
+  name             VARCHAR(100)  NOT NULL COMMENT '工程/项目名',
+  category         VARCHAR(50)   DEFAULT NULL COMMENT '工程分类',
+  province         VARCHAR(30)   DEFAULT NULL COMMENT '省',
+  city             VARCHAR(30)   DEFAULT NULL COMMENT '市',
+  location_detail  VARCHAR(200)  DEFAULT NULL COMMENT '具体地址',
+  client           VARCHAR(100)  DEFAULT NULL COMMENT '甲方',
+  contractor       VARCHAR(100)  DEFAULT NULL COMMENT '乙方',
+  amount           DECIMAL(12,2) DEFAULT NULL COMMENT '合同总金额',
+  start_date       DATE          DEFAULT NULL COMMENT '开始日期',
+  finish_date      DATE          DEFAULT NULL COMMENT '结束日期',
+  status           ENUM('prepare','ongoing','finished','canceled') DEFAULT NULL COMMENT '工程状态',
+  description      TEXT          DEFAULT NULL COMMENT '备注',
+  is_deleted       TINYINT(1)    NOT NULL DEFAULT 0,
+  created_at       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id)
+);
+
+-- ── 账单表 ──────────────────────────────────────────────────────────
+CREATE TABLE t_bills (
+  id           BIGINT        NOT NULL AUTO_INCREMENT,
+  user_id      INT           NOT NULL DEFAULT 1000,
+  project_id   INT           DEFAULT NULL COMMENT '关联工程，可为null',
+  bill_date    DATE          NOT NULL COMMENT '账单日期',
+  amount       DECIMAL(12,2) NOT NULL COMMENT '金额',
+  category_id  INT           DEFAULT NULL COMMENT '关联 t_bill_categories',
+  description  TEXT          DEFAULT NULL COMMENT '描述',
+  person       VARCHAR(50)   DEFAULT NULL COMMENT '负责人',
+  is_deleted   TINYINT(1)    NOT NULL DEFAULT 0,
+  created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_user_id (user_id),
+  KEY idx_project_id (project_id),
+  KEY idx_bill_date (bill_date)
+);

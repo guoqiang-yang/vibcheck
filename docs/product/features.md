@@ -339,3 +339,231 @@ ALTER TABLE t_categories ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0;
 | Feature 5：分类自定义管理 | ✅ 已确认 |
 | Feature 6：统计总结 | ✅ 已确认 |
 | Feature 7：用户中心页 | ✅ 已确认 |
+
+---
+
+---
+
+# VibCheck · v3.0 需求文档
+
+> 需求已锁定（2026-06-23），可进入开发阶段。
+
+## v3.0 目标
+
+灵感模块支持随笔子类型、主功能支持子分类标签、新增完整记账模块（工程+账单）。
+
+---
+
+## 导航结构变更
+
+| 版本 | Tab 定义 |
+|------|----------|
+| v2.0 | 日历 / 统计 / 我的 |
+| v3.0 | 日历 / **记账** / 统计 / 我的 |
+
+**Tab 定义：**
+| Tab | 图标 | 路由 |
+|-----|------|------|
+| 日历 | 日历 SVG | `/calendar` |
+| 记账 | 账本 SVG | `/ledger` |
+| 统计 | 柱状图 SVG | `/stats` |
+| 我的 | 用户 SVG | `/profile` |
+
+---
+
+## Feature 8：灵感模块改进 ✅
+
+### 图标变更
+| 位置 | 旧方案 | 新方案 |
+|------|--------|--------|
+| 所有灵感图标 | 内联 SVG 闪电（#FBBF24）| 点亮灯泡 SVG（#FBBF24/#F59E0B） |
+| 随笔图标 | — | 铅笔 SVG（#8A6A74） |
+
+### 随笔子类型
+inspiration 类型下通过 `sub_category` 字段区分两种子类型：
+
+| sub_category 值 | 语义 | 图标 | 表单占位符 |
+|-----------------|------|------|-----------|
+| `'灵感'`（默认/null） | 突发奇想 | 灯泡 SVG | 灵感一闪… |
+| `'随笔'` | 日常工作感悟 | 铅笔 SVG | 记录工作感悟… |
+
+### 表单变更
+- inspiration Tab 下新增子类型选择器（两个按钮：灵感 / 随笔）
+- sub_category 默认选中"灵感"
+
+### 展示规则
+- InspirationRow：按 sub_category 显示对应图标
+- MiniTimeline：灵感显示灯泡，随笔显示铅笔
+- 日历时间轴：同上
+
+### 数据层
+```sql
+-- 仅新增 sub_category 字段，type ENUM 不变
+ALTER TABLE t_time_events
+  ADD COLUMN sub_category VARCHAR(20) DEFAULT NULL;
+```
+
+---
+
+## Feature 9：主功能模块改进 ✅
+
+### 改名
+| 位置 | 旧文案 | 新文案 |
+|------|--------|--------|
+| 新增事项弹层 Tab | 已记录 | 记录 |
+| 详情页 Section 标题 | 已记录 | 记录 |
+
+### 子分类
+- actual / planned 类型支持可选子分类标签
+- 输入方式：自由文本，2–8 字，选填
+- 存储：`t_time_events.sub_category`（与灵感随笔共用字段）
+- 展示：事项卡片标题下方显示小标签（`#tag` 样式）
+
+### API 变更
+现有 `POST /api/v1/events` 和 `PUT /api/v1/events/{uuid}` 的 Request body 新增可选字段：
+```json
+{ "sub_category": "施工管理" }
+```
+Response 同步返回 `sub_category` 字段。
+
+---
+
+## Feature 10：记账功能 ✅
+
+### 入口
+- 底部 Tab「记账」→ `/ledger`（账单列表）
+- 「我的」页 → 「记账管理」→ `/ledger/manage`（分类+工程管理）
+
+---
+
+### 10-A 账单列表页（`/ledger`）
+
+| 项目 | 规格 |
+|------|------|
+| 默认展示 | 最近 20 条账单，按 bill_date 降序 |
+| 筛选方式 | 顶部年/月选择器，切换后重新拉取 |
+| 汇总 | 筛选期内账单总金额（显示在列表顶部） |
+| 账单卡片 | 日期 · 金额 · 账单分类 · 负责人 · 描述 · 关联工程名（若有） |
+| 新增入口 | 右下角 FAB |
+| 编辑 | 点击卡片打开编辑 Sheet |
+
+**新增/编辑 Sheet 字段：**
+| 字段 | 类型 | 必填 |
+|------|------|------|
+| 账单日期 bill_date | date picker | 必填 |
+| 金额 amount | 数字输入 | 必填 |
+| 账单分类 category_id | 选择（来自 t_bill_categories）| 选填 |
+| 关联工程 project_id | 选择（来自 t_projects 活跃列表）| 选填 |
+| 负责人 person | 文本输入 | 选填 |
+| 描述 description | 多行文本 | 选填 |
+
+---
+
+### 10-B 记账管理页（`/ledger/manage`）
+
+**两个区块：**
+
+**区块1：账单分类管理**
+- 展示所有分类（含已删除），活跃在前
+- 操作：新增（名称）/ 编辑 / 逻辑删除
+
+**区块2：工程管理**
+- 展示所有工程列表，按 created_at 降序
+- 状态标签：筹备 / 进行中 / 已完成 / 已取消
+- 点击工程 → 工程详情/编辑页（Sheet 或新页）
+- 新增/编辑工程字段：工程名（必填）、负责人（必填）、工程分类、省/市/具体地址、甲方、乙方、合同金额、开始日期、结束日期、状态、描述
+
+---
+
+### API 规格
+
+**账单分类**
+
+`GET /api/v1/bill-categories` — 返回当前用户所有分类（含已删除）
+
+`POST /api/v1/bill-categories`
+```json
+// Request
+{ "name": "材料款" }
+// Response
+{ "id": 1, "user_id": 1000, "name": "材料款", "is_deleted": false, "created_at": "..." }
+```
+
+`PUT /api/v1/bill-categories/{id}`
+```json
+// Request
+{ "name": "材料费" }
+```
+
+`DELETE /api/v1/bill-categories/{id}` → `{ "ok": true }`
+
+**工程**
+
+`GET /api/v1/projects` — 返回所有工程（含已删除）
+
+`POST /api/v1/projects`
+```json
+{
+  "name": "XX大桥工程", "maintainer": "张三",
+  "category": "桥梁", "province": "广东", "city": "广州",
+  "location_detail": "天河区XX路",
+  "client": "XX市政局", "contractor": "XX建设",
+  "amount": 5000000.00,
+  "start_date": "2026-01-01", "finish_date": "2027-06-30",
+  "status": "ongoing", "description": "备注"
+}
+```
+
+`PUT /api/v1/projects/{id}` — 同上字段均可选
+
+`DELETE /api/v1/projects/{id}` → `{ "ok": true }`
+
+**账单**
+
+`GET /api/v1/bills?year=2026&month=6&limit=20&offset=0`
+```json
+{
+  "total": 45,
+  "total_amount": 128000.00,
+  "items": [
+    {
+      "id": 1, "bill_date": "2026-06-15", "amount": 50000.00,
+      "category_id": 1, "category_name": "材料款",
+      "project_id": 2, "project_name": "XX大桥工程",
+      "person": "李四", "description": "第一批钢筋款",
+      "created_at": "..."
+    }
+  ]
+}
+```
+
+`POST /api/v1/bills`
+```json
+{
+  "bill_date": "2026-06-15", "amount": 50000.00,
+  "category_id": 1, "project_id": 2,
+  "person": "李四", "description": "第一批钢筋款"
+}
+```
+
+`PUT /api/v1/bills/{id}` — 同上字段均可选
+
+`DELETE /api/v1/bills/{id}` → `{ "ok": true }`
+
+---
+
+### 数据表（见 database/db_v3.0_draft.sql，已由用户确认）
+
+- `t_bill_categories`：账单分类
+- `t_projects`：工程（含 maintainer / status / finish_date）
+- `t_bills`：账单（project_id 可为 null，person 自由文本）
+
+---
+
+## 需求状态
+
+| 模块 | 状态 |
+|------|------|
+| Feature 8：灵感模块改进 | ✅ 已确认 |
+| Feature 9：主功能改进 | ✅ 已确认 |
+| Feature 10：记账功能 | ✅ 已确认 |

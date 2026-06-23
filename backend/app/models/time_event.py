@@ -31,5 +31,6 @@ class TimeEvent(Base):
     engagement: Mapped[Engagement | None] = mapped_column(Enum(Engagement), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sub_category: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

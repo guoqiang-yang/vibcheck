@@ -33,6 +33,7 @@ export interface TimeEvent {
   engagement: Engagement | null
   note: string | null
   content: string | null
+  sub_category: string | null
   created_at: string
   updated_at: string
 }
@@ -47,6 +48,7 @@ export interface TimeEventCreate {
   engagement?: Engagement
   note?: string
   content?: string
+  sub_category?: string
 }
 
 export interface TimeEventUpdate {
@@ -58,7 +60,94 @@ export interface TimeEventUpdate {
   engagement?: Engagement
   note?: string
   content?: string
+  sub_category?: string
 }
+
+// ── Ledger ─────────────────────────────────────────────────────────
+
+export interface BillCategory {
+  id: number
+  user_id: number
+  name: string
+  is_deleted: boolean
+  created_at: string
+}
+
+export interface Project {
+  id: number
+  user_id: number
+  maintainer: string
+  name: string
+  category: string | null
+  province: string | null
+  city: string | null
+  location_detail: string | null
+  client: string | null
+  contractor: string | null
+  amount: number | null
+  start_date: string | null
+  finish_date: string | null
+  status: 'prepare' | 'ongoing' | 'finished' | 'canceled' | null
+  description: string | null
+  is_deleted: boolean
+  created_at: string
+}
+
+export interface BillItem {
+  id: number
+  user_id: number
+  bill_date: string
+  amount: number
+  category_id: number | null
+  category_name: string | null
+  project_id: number | null
+  project_name: string | null
+  person: string | null
+  description: string | null
+  created_at: string
+}
+
+export interface BillListResponse {
+  total: number
+  total_amount: number
+  items: BillItem[]
+}
+
+export interface BillCreate {
+  bill_date: string
+  amount: number
+  category_id?: number
+  project_id?: number
+  person?: string
+  description?: string
+}
+
+export interface BillUpdate {
+  bill_date?: string
+  amount?: number
+  category_id?: number
+  project_id?: number
+  person?: string
+  description?: string
+}
+
+export interface ProjectCreate {
+  name: string
+  maintainer: string
+  category?: string
+  province?: string
+  city?: string
+  location_detail?: string
+  client?: string
+  contractor?: string
+  amount?: number
+  start_date?: string
+  finish_date?: string
+  status?: 'prepare' | 'ongoing' | 'finished' | 'canceled'
+  description?: string
+}
+
+export type ProjectUpdate = Partial<ProjectCreate>
 
 // ── Stats ──────────────────────────────────────────────────────────
 

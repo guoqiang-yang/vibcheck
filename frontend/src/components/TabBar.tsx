@@ -5,6 +5,13 @@ const CalendarIcon = () => (
     <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
   </svg>
 )
+const LedgerIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/>
+    <path d="M8 10h8M8 14h4"/>
+    <path d="M16 2v4"/>
+  </svg>
+)
 const ChartIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 20V10M12 20V4M6 20v-6"/>
@@ -17,9 +24,10 @@ const UserIcon = () => (
 )
 
 const TABS = [
-  { path: '/calendar', label: '日历', Icon: CalendarIcon },
-  { path: '/stats',    label: '统计', Icon: ChartIcon },
-  { path: '/profile',  label: '我的', Icon: UserIcon },
+  { path: '/calendar', label: '日历',  Icon: CalendarIcon },
+  { path: '/ledger',   label: '记账',  Icon: LedgerIcon },
+  { path: '/stats',    label: '统计',  Icon: ChartIcon },
+  { path: '/profile',  label: '我的',  Icon: UserIcon },
 ]
 
 export default function TabBar() {
@@ -35,7 +43,7 @@ export default function TabBar() {
       paddingBottom: 'env(safe-area-inset-bottom, 6px)',
     }}>
       {TABS.map(({ path, label, Icon }) => {
-        const active = pathname === path
+        const active = pathname === path || (path === '/ledger' && pathname.startsWith('/ledger'))
         return (
           <button
             key={path}

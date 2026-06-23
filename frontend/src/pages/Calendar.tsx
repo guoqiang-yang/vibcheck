@@ -154,7 +154,11 @@ export default function Calendar() {
         if (ev.type === 'inspiration') {
           const [sh, sm] = ev.start_time.split(':').map(Number)
           const x = toX(tlWidth, sh, sm)
-          actualHtml += `<div style="position:absolute;top:50%;left:${x}px;transform:translate(-50%,-50%);pointer-events:none;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.09 12.96a.5.5 0 0 0 .41.79H11l-1 8.25L19.91 11.04a.5.5 0 0 0-.41-.79H13L14 2z"/></svg></div>`
+          const isEssay = ev.sub_category === '随笔'
+          const icon = isEssay
+            ? `<span style="font-size:12px;line-height:1">✏️</span>`
+            : `<svg width="14" height="14" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21h6M12 3a6 6 0 0 1 4.243 10.243C15.126 14.36 15 15.18 15 16H9c0-.82-.126-1.64-1.243-2.757A6 6 0 0 1 12 3z"/><path d="M9 16h6"/></svg>`
+          actualHtml += `<div style="position:absolute;top:50%;left:${x}px;transform:translate(-50%,-50%);pointer-events:none;display:flex;align-items:center;justify-content:center">${icon}</div>`
           return
         }
         const cat = ev.category_id != null ? catMap.get(ev.category_id) : undefined

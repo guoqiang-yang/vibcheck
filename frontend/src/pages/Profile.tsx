@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Category } from '../types'
@@ -244,6 +245,7 @@ function Toast({ msg, onDismiss }: { msg: string; onDismiss: () => void }) {
 // ── Main page ─────────────────────────────────────────────────────
 
 export default function Profile() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [sheetMode, setSheetMode] = useState<SheetMode>(null)
   const [editingCat, setEditingCat] = useState<Category | null>(null)
@@ -345,6 +347,30 @@ export default function Profile() {
 
         <div style={{ padding: '8px 12px', fontSize: 10, color: '#A08898', lineHeight: 1.6 }}>
           已使用 {total} / {MAX_CATEGORIES} 个分类（含已删除）
+        </div>
+
+        {/* Ledger manage entry */}
+        <div style={{ padding: '4px 12px 8px' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#8A6A74', letterSpacing: '1px', textTransform: 'uppercase' }}>
+            记账管理
+          </span>
+        </div>
+        <div style={{ margin: '0 12px', background: 'white', borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
+          <button onClick={() => navigate('/ledger/manage')} style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 16px', border: 'none', background: 'none', cursor: 'pointer',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#C86878,#C88860)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/>
+                  <path d="M8 10h8M8 14h4"/>
+                </svg>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#2E1A22' }}>记账管理</span>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C0A8B0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
         </div>
 
         <div style={{ height: 16 }} />
