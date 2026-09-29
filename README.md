@@ -61,16 +61,33 @@ DATABASE_URL=mysql+pymysql://root:password@127.0.0.1:3306/vibcheck
 
 ```
 vibcheck/
-├── frontend/          # React PWA（端口 3000）
+├── frontend/          # 现有个人端 React PWA（端口 3000）
 │   └── src/
 │       ├── pages/     # Calendar / DailyDetail
 │       ├── api/       # Axios 请求封装
 │       └── types/     # TypeScript 类型
+├── admin-web/         # 后台管理端（PC 浏览器）
+│   └── src/
+│       ├── pages/     # 后台页面
+│       ├── components/ # 后台通用组件
+│       ├── layouts/   # PC 管理端布局
+│       ├── api/       # 后台 API 请求封装
+│       └── types/     # 后台类型定义
+├── worker-web/        # 工人端（手机 Web）
+│   └── src/
+│       ├── pages/     # 工人端页面
+│       ├── components/ # 工人端通用组件
+│       ├── api/       # 工人端 API 请求封装
+│       └── types/     # 工人端类型定义
+├── shared/            # 多端共享类型 / 工具函数
+│   ├── types/
+│   └── utils/
 ├── backend/           # FastAPI（端口 8000）
 │   └── app/
-│       ├── routers/   # events / categories
+│       ├── routers/   # events / categories / admin / worker
 │       ├── models/    # SQLAlchemy 模型
-│       └── schemas/   # Pydantic 请求/响应
+│       ├── schemas/   # Pydantic 请求/响应
+│       └── services/  # 复杂业务逻辑
 ├── database/
 │   └── db.sql         # 表结构 + 种子数据
 ├── docs/              # 产品 / 技术文档

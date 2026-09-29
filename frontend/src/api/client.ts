@@ -3,7 +3,7 @@ import type {
   Category, CategoryCreate, CategoryUpdate,
   TimeEvent, TimeEventCreate, TimeEventUpdate,
   WeeklyStats, MonthlyStats,
-  BillCategory, BillItem, BillListResponse, BillCreate, BillUpdate,
+  BillCategory, BillCategoryUpsert, BillItem, BillListResponse, BillCreate, BillUpdate,
   Project, ProjectCreate, ProjectUpdate,
 } from '../types'
 
@@ -50,11 +50,11 @@ export const api = {
   getBillCategories: () =>
     http.get<BillCategory[]>('/bill-categories').then(r => r.data),
 
-  createBillCategory: (name: string) =>
-    http.post<BillCategory>('/bill-categories', { name }).then(r => r.data),
+  createBillCategory: (body: BillCategoryUpsert) =>
+    http.post<BillCategory>('/bill-categories', body).then(r => r.data),
 
-  updateBillCategory: (id: number, name: string) =>
-    http.put<BillCategory>(`/bill-categories/${id}`, { name }).then(r => r.data),
+  updateBillCategory: (id: number, body: BillCategoryUpsert) =>
+    http.put<BillCategory>(`/bill-categories/${id}`, body).then(r => r.data),
 
   deleteBillCategory: (id: number) =>
     http.delete(`/bill-categories/${id}`),

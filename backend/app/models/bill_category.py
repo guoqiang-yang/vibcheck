@@ -8,6 +8,7 @@ class BillCategory(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, nullable=False, default=1000)
+    parent_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     is_deleted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())

@@ -68,9 +68,15 @@ export interface TimeEventUpdate {
 export interface BillCategory {
   id: number
   user_id: number
+  parent_id: number | null
   name: string
   is_deleted: boolean
   created_at: string
+}
+
+export interface BillCategoryUpsert {
+  name: string
+  parent_id?: number | null
 }
 
 export interface Project {

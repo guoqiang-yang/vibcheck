@@ -47,18 +47,31 @@ function BillCategorySection() {
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editName, setEditName] = useState('')
+  const [editParentId, setEditParentId] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newParentId, setNewParentId] = useState<number | null>(null)
+
+  const parentCats = cats.filter(c => c.parent_id == null && !c.is_deleted)
+  const rootCats = cats.filter(c => c.parent_id == null)
+  const orderedCats = [
+    ...rootCats.flatMap(parent => [
+      parent,
+      ...cats.filter(child => child.parent_id === parent.id),
+    ]),
+    ...cats.filter(c => c.parent_id != null && !cats.some(parent => parent.id === c.parent_id)),
+  ]
+  const catName = new Map(cats.map(c => [c.id, c.name]))
 
   async function handleCreate() {
     if (!newName.trim()) return
-    await api.createBillCategory(newName.trim())
+    await api.createBillCategory({ name: newName.trim(), parent_id: newParentId })
     qc.invalidateQueries({ queryKey: ['bill-categories'] })
-    setNewName(''); setAdding(false)
+    setNewName(''); setNewParentId(null); setAdding(false)
   }
   async function handleUpdate(id: number) {
     if (!editName.trim()) return
-    await api.updateBillCategory(id, editName.trim())
+    await api.updateBillCategory(id, { name: editName.trim(), parent_id: editParentId })
     qc.invalidateQueries({ queryKey: ['bill-categories'] })
     setEditingId(null)
   }
@@ -69,25 +82,31 @@ function BillCategorySection() {
 
   return (
     <div>
-      <SectionHeader title="账单分类" onAdd={() => { setAdding(true); setNewName('') }} />
+      <SectionHeader title="账单分类" onAdd={() => { setAdding(true); setNewName(''); setNewParentId(null) }} />
       <div style={{ padding: '0 16px' }}>
         {adding && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: 8, marginBottom: 10 }}>
             <input value={newName} onChange={e => setNewName(e.target.value)}
               placeholder="分类名称" autoFocus
-              style={{ ...inputStyle, flex: 1 }}
+              style={{ ...inputStyle, minWidth: 0 }}
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
             />
+            <select value={newParentId ?? ''} onChange={e => setNewParentId(e.target.value ? Number(e.target.value) : null)}
+              style={{ ...inputStyle, minWidth: 0 }}>
+              <option value="">一级分类</option>
+              {parentCats.map(parent => <option key={parent.id} value={parent.id}>子分类：{parent.name}</option>)}
+            </select>
             <button onClick={handleCreate} style={{ padding: '9px 14px', border: 'none', borderRadius: 10, background: '#C86878', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>保存</button>
             <button onClick={() => setAdding(false)} style={{ padding: '9px 12px', border: '1.5px solid #E0D4D8', borderRadius: 10, background: 'white', color: '#8A6A74', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>取消</button>
           </div>
         )}
-        {cats.map(cat => (
+        {orderedCats.map(cat => (
           <div key={cat.id} style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
             background: 'white', borderRadius: 10, marginBottom: 8,
             boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
             opacity: cat.is_deleted ? 0.5 : 1,
+            marginLeft: cat.parent_id ? 18 : 0,
           }}>
             {editingId === cat.id ? (
               <>
@@ -95,14 +114,24 @@ function BillCategorySection() {
                   style={{ ...inputStyle, flex: 1, padding: '6px 10px', fontSize: 14 }}
                   onKeyDown={e => e.key === 'Enter' && handleUpdate(cat.id)}
                 />
+                <select value={editParentId ?? ''} onChange={e => setEditParentId(e.target.value ? Number(e.target.value) : null)}
+                  style={{ ...inputStyle, flex: 1, padding: '6px 10px', fontSize: 14 }}>
+                  <option value="">一级分类</option>
+                  {parentCats.filter(parent => parent.id !== cat.id).map(parent => (
+                    <option key={parent.id} value={parent.id}>子分类：{parent.name}</option>
+                  ))}
+                </select>
                 <button onClick={() => handleUpdate(cat.id)} style={{ padding: '6px 12px', border: 'none', borderRadius: 8, background: '#C86878', color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>保存</button>
                 <button onClick={() => setEditingId(null)} style={{ padding: '6px 10px', border: '1.5px solid #E0D4D8', borderRadius: 8, background: 'white', color: '#8A6A74', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>取消</button>
               </>
             ) : (
               <>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#2E1A22', textDecoration: cat.is_deleted ? 'line-through' : 'none' }}>{cat.name}</span>
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#2E1A22', textDecoration: cat.is_deleted ? 'line-through' : 'none' }}>
+                  {cat.parent_id ? `└ ${cat.name}` : cat.name}
+                  {cat.parent_id && <span style={{ marginLeft: 6, fontSize: 11, color: '#8A6A74', fontWeight: 500 }}>上级：{catName.get(cat.parent_id)}</span>}
+                </span>
                 {!cat.is_deleted && (
-                  <button onClick={() => { setEditingId(cat.id); setEditName(cat.name) }}
+                  <button onClick={() => { setEditingId(cat.id); setEditName(cat.name); setEditParentId(cat.parent_id) }}
                     style={{ padding: '5px 10px', border: '1.5px solid #E0D4D8', borderRadius: 8, background: 'white', color: '#8A6A74', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>编辑</button>
                 )}
                 <button onClick={() => handleDelete(cat.id)}

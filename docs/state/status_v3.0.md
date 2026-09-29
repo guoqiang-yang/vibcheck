@@ -26,12 +26,14 @@ ALTER TABLE t_time_events
 CREATE TABLE t_bill_categories (
   id          INT          NOT NULL AUTO_INCREMENT,
   user_id     INT          NOT NULL DEFAULT 1000,
+  parent_id   INT          DEFAULT NULL COMMENT '父级分类ID，一级分类为NULL',
   name        VARCHAR(50)  NOT NULL,
   is_deleted  TINYINT(1)   NOT NULL DEFAULT 0,
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  KEY idx_user_id (user_id)
+  KEY idx_user_id (user_id),
+  KEY idx_parent_id (parent_id)
 );
 
 -- 3. 新增工程表

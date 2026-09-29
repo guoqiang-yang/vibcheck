@@ -87,7 +87,15 @@ function BillSheet({ bill, billCategories, projects, onClose, onSaved, onDeleted
     } catch { setDeleting(false) }
   }
 
-  const activeCategories = billCategories.filter(c => !c.is_deleted)
+  const catName = new Map(billCategories.map(c => [c.id, c.name]))
+  const rootBillCategories = billCategories.filter(c => !c.is_deleted && c.parent_id == null)
+  const activeCategories = [
+    ...rootBillCategories.flatMap(parent => [
+      parent,
+      ...billCategories.filter(child => !child.is_deleted && child.parent_id === parent.id),
+    ]),
+    ...billCategories.filter(c => !c.is_deleted && c.parent_id != null && !billCategories.some(parent => parent.id === c.parent_id && !parent.is_deleted)),
+  ]
   const activeProjects = projects.filter(p => !p.is_deleted)
 
   return (
@@ -128,7 +136,7 @@ function BillSheet({ bill, billCategories, projects, onClose, onSaved, onDeleted
                     border: categoryId === cat.id ? '1.5px solid #C86878' : '1.5px solid #E0D4D8',
                     background: categoryId === cat.id ? 'rgba(200,104,120,0.1)' : 'white',
                     color: categoryId === cat.id ? '#C86878' : '#8A6A74',
-                  }}>{cat.name}</button>
+                  }}>{cat.parent_id ? `${catName.get(cat.parent_id)} / ${cat.name}` : cat.name}</button>
                 ))
               }
             </div>

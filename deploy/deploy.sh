@@ -16,6 +16,11 @@ cd "$APP_DIR/frontend"
 npm install --silent
 npm run build
 
+echo "==> Building Titan Admin..."
+cd "$APP_DIR/admin-web"
+npm install --silent
+npm run build
+
 echo "==> Restarting backend service..."
 systemctl restart vibcheck
 
