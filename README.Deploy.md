@@ -63,5 +63,5 @@ cp /opt/vibcheck/deploy/nginx.conf /etc/nginx/conf.d/vibcheck.conf
 nginx -t && systemctl reload nginx
 
 # 管理后台生产域名
-# 将 sa.ggflg.cn 解析到服务器后访问：
-# http://sa.ggflg.cn
+# 将 sa.ggfly.cn 解析到服务器后访问：
+# http://sa.ggfly.cn
