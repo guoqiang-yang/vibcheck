@@ -4,7 +4,7 @@ import type { BillCategory, BillCategoryUpsert, BillCreate, BillItem, BillListRe
 const http = axios.create({ baseURL: '/api/v1' })
 
 export const api = {
-  getBills: (params: { year?: number; month?: number; limit?: number; offset?: number }) =>
+  getBills: (params: { year?: number; month?: number; start_date?: string; end_date?: string; limit?: number; offset?: number }) =>
     http.get<BillListResponse>('/bills', { params }).then(r => r.data),
 
   createBill: (body: BillCreate) =>

@@ -10,6 +10,9 @@ backend/.env
 backend/.env.dev
 frontend/.env
 
+# 本地运行日志
+logs/
+
 resource/bugfix/*
 
 # Python 编译缓存

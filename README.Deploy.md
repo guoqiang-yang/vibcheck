@@ -46,8 +46,10 @@ venv/bin/pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env
 nano backend/.env   # 填入 user / password / dbname
 
-# 4. 构建前端
+# 4. 构建前端和管理后台
 cd /opt/vibcheck/frontend
+npm install && npm run build
+cd /opt/vibcheck/admin-web
 npm install && npm run build
 
 # 5. 注册 systemd 服务
@@ -59,3 +61,7 @@ systemctl start vibcheck
 # 6. 配置 Nginx
 cp /opt/vibcheck/deploy/nginx.conf /etc/nginx/conf.d/vibcheck.conf
 nginx -t && systemctl reload nginx
+
+# 管理后台生产域名
+# 将 sa.ggflg.cn 解析到服务器后访问：
+# http://sa.ggflg.cn

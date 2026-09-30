@@ -24,4 +24,9 @@ npm run build
 echo "==> Restarting backend service..."
 systemctl restart vibcheck
 
+echo "==> Reloading nginx..."
+cp "$APP_DIR/deploy/nginx.conf" /etc/nginx/conf.d/vibcheck.conf
+nginx -t
+systemctl reload nginx
+
 echo "==> Done. Check: systemctl status vibcheck"

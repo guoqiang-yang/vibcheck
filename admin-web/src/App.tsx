@@ -17,6 +17,9 @@ type CategoryFormState = {
   parent_id: number | null
 }
 
+type AdminView = 'bills' | 'categories' | 'category-form'
+type CategoryStat = { id: number | null; name: string; amount: number; count: number; last?: BillItem }
+
 const CATEGORY_COLORS = ['#1D4ED8', '#0F766E', '#CA8A04', '#C2410C', '#7C3AED', '#64748B', '#DB2777', '#0891B2']
 
 function today() {
@@ -33,6 +36,18 @@ function monthEnd(year: number, month: number) {
 
 function formatMoney(value: number) {
   return `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  if (startDate && endDate) return `${startDate.replaceAll('-', '/')} - ${endDate.replaceAll('-', '/')}`
+  if (startDate) return `${startDate.replaceAll('-', '/')} 起`
+  if (endDate) return `截至 ${endDate.replaceAll('-', '/')}`
+  return '全部日期'
+}
+
+function csvCell(value: string | number | null | undefined) {
+  const text = value == null ? '' : String(value)
+  return `"${text.replaceAll('"', '""')}"`
 }
 
 function projectStatusText(status: Project['status']) {
@@ -76,6 +91,7 @@ export default function App() {
   const [billDraft, setBillDraft] = useState<BillFormState | null>(null)
   const [editingBillId, setEditingBillId] = useState<number | null>(null)
   const [categoryDraft, setCategoryDraft] = useState<CategoryFormState | null>(null)
+  const [activeView, setActiveView] = useState<AdminView>('bills')
   const [saving, setSaving] = useState(false)
 
   async function loadData() {
@@ -83,7 +99,7 @@ export default function App() {
     setError('')
     try {
       const [billData, categoryData, projectData] = await Promise.all([
-        api.getBills({ year, month, limit: 500 }),
+        api.getBills({ start_date: startDate || undefined, end_date: endDate || undefined, limit: 500 }),
         api.getBillCategories(),
         api.getProjects(),
       ])
@@ -104,10 +120,17 @@ export default function App() {
 
   useEffect(() => {
     void loadData()
-  }, [year, month])
+  }, [startDate, endDate])
 
   const categoryName = new Map(categories.map(item => [item.id, item.name]))
+  const categoryById = new Map(categories.map(item => [item.id, item]))
   const categoryLabel = (category: BillCategory) => category.parent_id ? `${categoryName.get(category.parent_id) ?? '未分组'} / ${category.name}` : category.name
+  const primaryCategoryName = (categoryId: number | null) => {
+    if (categoryId == null) return '未分类'
+    const category = categoryById.get(categoryId)
+    if (!category) return '未分类'
+    return category.parent_id ? categoryName.get(category.parent_id) ?? '未分组' : category.name
+  }
   const parentCategories = categories.filter(item => !item.is_deleted && item.parent_id == null)
   const rootCategories = categories.filter(item => item.parent_id == null)
   const orderedCategories = [
@@ -119,27 +142,35 @@ export default function App() {
   ]
   const activeCategories = orderedCategories.filter(item => !item.is_deleted)
   const activeProjects = projects.filter(item => !item.is_deleted)
+  const dateRangeLabel = formatDateRange(startDate, endDate)
 
   const filteredBills = useMemo(() => {
     const q = keyword.trim().toLowerCase()
+    const selectedCategory = categoryFilter ? categoryById.get(Number(categoryFilter)) : undefined
+    const selectedCategoryIds = selectedCategory
+      ? new Set([
+        selectedCategory.id,
+        ...categories.filter(item => item.parent_id === selectedCategory.id).map(item => item.id),
+      ])
+      : null
     return bills.filter(bill => {
       if (startDate && bill.bill_date < startDate) return false
       if (endDate && bill.bill_date > endDate) return false
-      if (categoryFilter && String(bill.category_id ?? '') !== categoryFilter) return false
+      if (selectedCategoryIds && (bill.category_id == null || !selectedCategoryIds.has(bill.category_id))) return false
       if (projectFilter && String(bill.project_id ?? '') !== projectFilter) return false
       if (!q) return true
       return [bill.person, bill.description, bill.project_name, bill.category_name]
         .filter(Boolean)
         .some(value => value!.toLowerCase().includes(q))
     })
-  }, [bills, categoryFilter, endDate, keyword, projectFilter, startDate])
+  }, [bills, categories, categoryById, categoryFilter, endDate, keyword, projectFilter, startDate])
 
   const totalAmount = filteredBills.reduce((sum, bill) => sum + Number(bill.amount), 0)
   const projectAmount = filteredBills.filter(bill => bill.project_id != null).reduce((sum, bill) => sum + Number(bill.amount), 0)
   const unlinkedCount = filteredBills.filter(bill => bill.project_id == null).length
 
   const categoryStats = useMemo(() => {
-    const map = new Map<number | -1, { id: number | null; name: string; amount: number; count: number; last?: BillItem }>()
+    const map = new Map<number | -1, CategoryStat>()
     filteredBills.forEach(bill => {
       const id = bill.category_id ?? -1
       const category = categories.find(item => item.id === bill.category_id)
@@ -166,6 +197,20 @@ export default function App() {
     return Array.from(map.values()).sort((a, b) => b.amount - a.amount).slice(0, 3)
   }, [filteredBills, projects])
 
+  const primaryCategoryStats = useMemo(() => {
+    const map = new Map<number | -1, CategoryStat>()
+    filteredBills.forEach(bill => {
+      const category = bill.category_id == null ? undefined : categoryById.get(bill.category_id)
+      const primaryId = category?.parent_id ?? category?.id ?? -1
+      const current = map.get(primaryId) ?? { id: primaryId === -1 ? null : primaryId, name: primaryId === -1 ? '未分类' : categoryName.get(primaryId) ?? '未分组', amount: 0, count: 0 }
+      current.amount += Number(bill.amount)
+      current.count += 1
+      if (!current.last || bill.bill_date > current.last.bill_date) current.last = bill
+      map.set(primaryId, current)
+    })
+    return Array.from(map.values()).sort((a, b) => b.amount - a.amount)
+  }, [categoryById, categoryName, filteredBills])
+
   function openNewBill() {
     setEditingBillId(null)
     setBillDraft({
@@ -191,7 +236,29 @@ export default function App() {
   }
 
   function openCategory(category?: BillCategory) {
+    setActiveView('category-form')
     setCategoryDraft(category ? { id: category.id, name: category.name, parent_id: category.parent_id } : { name: '', parent_id: null })
+  }
+
+  function exportBills() {
+    const headers = ['日期', '金额', '一级分类', '分类', '关联工程', '负责人', '描述']
+    const rows = filteredBills.map(bill => [
+      bill.bill_date,
+      Number(bill.amount).toFixed(2),
+      primaryCategoryName(bill.category_id),
+      bill.category_name ?? '未分类',
+      bill.project_name ?? '',
+      bill.person ?? '',
+      bill.description ?? '',
+    ])
+    const csv = [headers, ...rows].map(row => row.map(csvCell).join(',')).join('\n')
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `账单明细_${startDate || 'all'}_${endDate || 'all'}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   async function saveBill() {
@@ -230,6 +297,7 @@ export default function App() {
       if (categoryDraft.id) await api.updateBillCategory(categoryDraft.id, body)
       else await api.createBillCategory(body)
       setCategoryDraft(null)
+      setActiveView('categories')
       await loadData()
     } finally {
       setSaving(false)
@@ -263,28 +331,34 @@ export default function App() {
           <div className="brand-mark">T</div>
           <div className="brand-name">Titan Admin</div>
         </div>
-        <Nav />
+        <Nav activeView={activeView} onChange={view => {
+          setActiveView(view)
+          if (view !== 'category-form') setCategoryDraft(null)
+        }} />
       </aside>
 
       <main className="main">
         <header className="topbar">
           <div>
-            <h1>记账管理</h1>
-            <p>账单、工程、分类在同一工作台中集中处理</p>
+            <h1>{activeView === 'bills' ? '记账管理' : activeView === 'categories' ? '账单分类' : categoryDraft?.id ? '编辑账单分类' : '新增账单分类'}</h1>
+            <p>{activeView === 'bills' ? '账单与工程支出集中处理' : '维护一级分类与二级分类'}</p>
           </div>
           <div className="top-actions">
-            <button className="btn" onClick={prevMonth}>上月</button>
-            <button className="btn" onClick={nextMonth}>下月</button>
-            <button className="btn"><Icon name="download" />导出</button>
-            <button className="btn" onClick={() => openCategory()}><Icon name="plus" />新增分类</button>
-            <button className="btn primary" onClick={openNewBill}><Icon name="plus" />新增账单</button>
+            {activeView === 'bills' && <>
+              <button className="btn" onClick={prevMonth}>上月</button>
+              <button className="btn" onClick={nextMonth}>下月</button>
+              <button className="btn" onClick={exportBills} disabled={filteredBills.length === 0}><Icon name="download" />导出</button>
+              <button className="btn primary" onClick={openNewBill}><Icon name="plus" />新增账单</button>
+            </>}
+            {activeView === 'categories' && <button className="btn primary" onClick={() => openCategory()}><Icon name="plus" />新增分类</button>}
+            {activeView === 'category-form' && <button className="btn" onClick={() => { setCategoryDraft(null); setActiveView('categories') }}>返回列表</button>}
           </div>
         </header>
 
-        <section className="content">
+        {activeView === 'bills' && <section className="content">
           <div className="left-stack">
             <section className="kpis">
-              <Kpi title="当前支出" value={formatMoney(totalAmount)} note={`${year}年${month}月筛选结果`} />
+              <Kpi title="当前支出" value={formatMoney(totalAmount)} note={dateRangeLabel} />
               <Kpi title="账单笔数" value={String(filteredBills.length)} note={loading ? '正在刷新数据' : `共读取 ${bills.length} 笔`} />
               <Kpi title="工程支出" value={formatMoney(projectAmount)} note={`占比 ${totalAmount ? Math.round(projectAmount / totalAmount * 100) : 0}%`} />
               <Kpi title="未关联账单" value={String(unlinkedCount)} note={unlinkedCount > 0 ? '建议补充工程' : '全部已关联'} warn={unlinkedCount > 0} />
@@ -309,12 +383,13 @@ export default function App() {
 
             <Panel title="账单明细" meta={`${filteredBills.length} records`}>
               <table>
-                <thead><tr><th>日期</th><th className="right">金额</th><th>分类</th><th>关联工程</th><th>负责人</th><th>描述</th><th className="right">操作</th></tr></thead>
+                <thead><tr><th>日期</th><th className="right">金额</th><th>一级分类</th><th>分类</th><th>关联工程</th><th>负责人</th><th>描述</th><th className="right">操作</th></tr></thead>
                 <tbody>
                   {filteredBills.map(bill => (
                     <tr key={bill.id}>
                       <td className="muted">{bill.bill_date}</td>
                       <td className="num amount">{formatMoney(Number(bill.amount))}</td>
+                      <td><span className="tag green">{primaryCategoryName(bill.category_id)}</span></td>
                       <td><span className="tag">{bill.category_name ?? '未分类'}</span></td>
                       <td>{bill.project_name ?? <span className="muted">未关联</span>}</td>
                       <td>{bill.person || <span className="muted">未填写</span>}</td>
@@ -322,38 +397,22 @@ export default function App() {
                       <td><div className="row-actions"><button className="icon-btn" onClick={() => openEditBill(bill)}><Icon name="edit" /></button><button className="icon-btn" onClick={() => void removeBill(bill.id)}><Icon name="trash" /></button></div></td>
                     </tr>
                   ))}
-                  {!loading && filteredBills.length === 0 && <tr><td className="empty" colSpan={7}>暂无账单数据</td></tr>}
+                  {!loading && filteredBills.length === 0 && <tr><td className="empty" colSpan={8}>暂无账单数据</td></tr>}
                 </tbody>
               </table>
             </Panel>
 
-            <Panel title="账单分类列表" action={<button className="btn" onClick={() => openCategory()}><Icon name="plus" />新增分类</button>}>
-              <table>
-                <thead><tr><th>分类名称</th><th>父级</th><th>状态</th><th className="right">本月金额</th><th className="right">账单数</th><th>最近使用</th><th className="right">操作</th></tr></thead>
-                <tbody>
-                  {orderedCategories.map((category, index) => {
-                    const stat = categoryStats.find(item => item.id === category.id)
-                    return (
-                      <tr key={category.id}>
-                        <td className={category.parent_id ? 'category-child' : undefined}><span className="category-color" style={{ background: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />{category.parent_id ? `└ ${category.name}` : category.name}</td>
-                        <td className="muted">{category.parent_id ? categoryName.get(category.parent_id) ?? '未分组' : '一级分类'}</td>
-                        <td><span className={category.is_deleted ? 'status-dot off' : 'status-dot'} />{category.is_deleted ? '停用' : '启用'}</td>
-                        <td className="num">{formatMoney(stat?.amount ?? 0)}</td>
-                        <td className="num">{stat?.count ?? 0}</td>
-                        <td className="muted">{stat?.last ? `${stat.last.bill_date} · ${stat.last.description || stat.last.project_name || '最近账单'}` : '暂无使用记录'}</td>
-                        <td><div className="category-actions">
-                          {!category.is_deleted && <button className="btn" onClick={() => openCategory(category)}>编辑</button>}
-                          {!category.is_deleted ? <button className="btn" onClick={() => void disableCategory(category.id)}>停用</button> : <button className="btn" disabled title="后端暂未提供恢复接口">恢复</button>}
-                        </div></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </Panel>
           </div>
 
           <aside className="right-stack">
+            <section className="side-panel">
+              <h2>一级分类支出</h2>
+              {primaryCategoryStats.slice(0, 6).map((item, index) => {
+                const pct = totalAmount ? Math.round(item.amount / totalAmount * 100) : 0
+                return <Bar key={item.id ?? -1} label={item.name} value={`${formatMoney(item.amount)} · ${pct}%`} pct={pct} color={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+              })}
+              {primaryCategoryStats.length === 0 && <div className="empty compact">暂无一级分类支出</div>}
+            </section>
             <section className="side-panel">
               <h2>分类支出占比</h2>
               {categoryStats.slice(0, 6).map((item, index) => {
@@ -375,7 +434,28 @@ export default function App() {
               </div>
             </section>
           </aside>
-        </section>
+        </section>}
+
+        {activeView === 'categories' && <section className="page-content">
+          <CategoryTable
+            orderedCategories={orderedCategories}
+            categoryName={categoryName}
+            categoryStats={categoryStats}
+            onEdit={openCategory}
+            onDisable={id => void disableCategory(id)}
+          />
+        </section>}
+
+        {activeView === 'category-form' && categoryDraft && <section className="page-content">
+          <CategoryFormPage
+            draft={categoryDraft}
+            parentCategories={parentCategories.filter(item => item.id !== categoryDraft.id)}
+            saving={saving}
+            onChange={setCategoryDraft}
+            onCancel={() => { setCategoryDraft(null); setActiveView('categories') }}
+            onSave={() => void saveCategory()}
+          />
+        </section>}
       </main>
 
       {billDraft && <BillDrawer
@@ -390,26 +470,18 @@ export default function App() {
         onSave={() => void saveBill()}
       />}
 
-      {categoryDraft && <CategoryDrawer
-        draft={categoryDraft}
-        parentCategories={parentCategories.filter(item => item.id !== categoryDraft.id)}
-        saving={saving}
-        onChange={setCategoryDraft}
-        onClose={() => setCategoryDraft(null)}
-        onSave={() => void saveCategory()}
-      />}
     </div>
   )
 }
 
-function Nav() {
+function Nav({ activeView, onChange }: { activeView: AdminView; onChange: (view: AdminView) => void }) {
   return (
     <>
       <div className="nav-section">
         <div className="nav-title">经营</div>
         <div className="nav-item"><Icon name="chart" />总览</div>
-        <div className="nav-item active"><Icon name="list" />记账管理</div>
-        <div className="nav-item"><Icon name="sliders" />账单分类</div>
+        <button className={activeView === 'bills' ? 'nav-item active' : 'nav-item'} onClick={() => onChange('bills')}><Icon name="list" />记账管理</button>
+        <button className={activeView === 'categories' || activeView === 'category-form' ? 'nav-item active' : 'nav-item'} onClick={() => onChange('categories')}><Icon name="sliders" />账单分类</button>
         <div className="nav-item"><Icon name="building" />工程管理</div>
       </div>
       <div className="nav-section">
@@ -460,28 +532,64 @@ function BillDrawer({ draft, editing, categories, categoryLabel, projects, savin
   )
 }
 
-function CategoryDrawer({ draft, parentCategories, saving, onChange, onClose, onSave }: {
+function CategoryTable({ orderedCategories, categoryName, categoryStats, onEdit, onDisable }: {
+  orderedCategories: BillCategory[]
+  categoryName: Map<number, string>
+  categoryStats: CategoryStat[]
+  onEdit: (category: BillCategory) => void
+  onDisable: (id: number) => void
+}) {
+  return (
+    <Panel title="账单分类列表" action={<span className="panel-meta">{orderedCategories.length} categories</span>}>
+      <table>
+        <thead><tr><th>分类名称</th><th>父级</th><th>状态</th><th className="right">区间金额</th><th className="right">账单数</th><th>最近使用</th><th className="right">操作</th></tr></thead>
+        <tbody>
+          {orderedCategories.map((category, index) => {
+            const stat = categoryStats.find(item => item.id === category.id)
+            return (
+              <tr key={category.id}>
+                <td className={category.parent_id ? 'category-child' : undefined}><span className="category-color" style={{ background: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }} />{category.parent_id ? `└ ${category.name}` : category.name}</td>
+                <td className="muted">{category.parent_id ? categoryName.get(category.parent_id) ?? '未分组' : '一级分类'}</td>
+                <td><span className={category.is_deleted ? 'status-dot off' : 'status-dot'} />{category.is_deleted ? '停用' : '启用'}</td>
+                <td className="num">{formatMoney(stat?.amount ?? 0)}</td>
+                <td className="num">{stat?.count ?? 0}</td>
+                <td className="muted">{stat?.last ? `${stat.last.bill_date} · ${stat.last.description || stat.last.project_name || '最近账单'}` : '暂无使用记录'}</td>
+                <td><div className="category-actions">
+                  {!category.is_deleted && <button className="btn" onClick={() => onEdit(category)}>编辑</button>}
+                  {!category.is_deleted ? <button className="btn" onClick={() => onDisable(category.id)}>停用</button> : <button className="btn" disabled title="后端暂未提供恢复接口">恢复</button>}
+                </div></td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </Panel>
+  )
+}
+
+function CategoryFormPage({ draft, parentCategories, saving, onChange, onCancel, onSave }: {
   draft: CategoryFormState
   parentCategories: BillCategory[]
   saving: boolean
   onChange: (draft: CategoryFormState) => void
-  onClose: () => void
+  onCancel: () => void
   onSave: () => void
 }) {
   return (
-    <section className="drawer secondary">
-      <div className="drawer-head"><h2>{draft.id ? '编辑账单分类' : '新增账单分类'}</h2><button className="icon-btn" onClick={onClose}><Icon name="close" /></button></div>
-      <div className="drawer-body">
-        <label>分类名称<input value={draft.name} onChange={e => onChange({ ...draft, name: e.target.value })} placeholder="例如：材料" /></label>
-        <label>父级分类<select value={draft.parent_id ?? ''} onChange={e => onChange({ ...draft, parent_id: e.target.value ? Number(e.target.value) : null })}>
-          <option value="">一级分类</option>
-          {parentCategories.map(parent => <option key={parent.id} value={parent.id}>子分类：{parent.name}</option>)}
-        </select></label>
-        <label>显示颜色<div className="swatches">{CATEGORY_COLORS.slice(0, 6).map(color => <button key={color} className="swatch" style={{ background: color }} title={color} />)}</div></label>
-        <label>状态<select disabled><option>启用</option></select></label>
-        <label>说明<textarea disabled value="当前数据库仅保存分类名称与停用状态，颜色和说明待后续表结构确认。" /></label>
+    <Panel title={draft.id ? '编辑账单分类' : '新增账单分类'}>
+      <div className="category-form-page">
+        <div className="form-grid">
+          <label>分类名称<input value={draft.name} onChange={e => onChange({ ...draft, name: e.target.value })} placeholder="例如：材料" /></label>
+          <label>父级分类<select value={draft.parent_id ?? ''} onChange={e => onChange({ ...draft, parent_id: e.target.value ? Number(e.target.value) : null })}>
+            <option value="">一级分类</option>
+            {parentCategories.map(parent => <option key={parent.id} value={parent.id}>子分类：{parent.name}</option>)}
+          </select></label>
+          <label>显示颜色<div className="swatches">{CATEGORY_COLORS.slice(0, 6).map(color => <button key={color} className="swatch" style={{ background: color }} title={color} type="button" />)}</div></label>
+          <label>状态<select disabled><option>启用</option></select></label>
+          <label className="full">说明<textarea disabled value="当前数据库仅保存分类名称与停用状态，颜色和说明待后续表结构确认。" /></label>
+        </div>
+        <div className="form-actions"><button className="btn" onClick={onCancel}>取消</button><button className="btn primary" disabled={saving || !draft.name.trim()} onClick={onSave}>{saving ? '保存中' : '保存分类'}</button></div>
       </div>
-      <div className="drawer-foot"><button className="btn" onClick={onClose}>取消</button><button className="btn primary" disabled={saving || !draft.name.trim()} onClick={onSave}>{saving ? '保存中' : '保存分类'}</button></div>
-    </section>
+    </Panel>
   )
 }

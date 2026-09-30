@@ -6,6 +6,7 @@ from app.models.bill import Bill
 from app.models.bill_category import BillCategory
 from app.models.project import Project
 from app.schemas.bill import BillCreate, BillUpdate, BillItem, BillListResponse
+from datetime import date
 from typing import Optional
 
 router = APIRouter(prefix="/api/v1/bills", tags=["bills"])
@@ -41,6 +42,8 @@ def _to_item(bill: Bill, db: Session) -> BillItem:
 def list_bills(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     limit: int = 20,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -50,13 +53,13 @@ def list_bills(
         q = q.filter(extract("year", Bill.bill_date) == year)
     if month:
         q = q.filter(extract("month", Bill.bill_date) == month)
+    if start_date:
+        q = q.filter(Bill.bill_date >= start_date)
+    if end_date:
+        q = q.filter(Bill.bill_date <= end_date)
 
     total = q.count()
-    total_amount = db.query(func.sum(Bill.amount)).filter(
-        Bill.user_id == USER_ID, Bill.is_deleted == 0,
-        *([extract("year", Bill.bill_date) == year] if year else []),
-        *([extract("month", Bill.bill_date) == month] if month else []),
-    ).scalar() or 0.0
+    total_amount = q.with_entities(func.sum(Bill.amount)).scalar() or 0.0
 
     rows = q.order_by(Bill.bill_date.desc()).offset(offset).limit(limit).all()
     return BillListResponse(
